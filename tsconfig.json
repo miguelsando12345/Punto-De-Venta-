@@ -13,16 +13,16 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "experimentalDecorators": true, // ✅ Habilita el soporte para decoradores
-    "emitDecoratorMetadata": true, // ✅ Permite que TypeORM use metadatos en los decoradores
-    "strictPropertyInitialization": false, // ✅ Evita errores con inicialización de propiedades
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "app/*": ["./src/*"]
+      "@/*": ["./src/*"] // ✅ Se corrigió el alias para que coincida con las importaciones
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
