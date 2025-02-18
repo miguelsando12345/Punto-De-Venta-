@@ -13,8 +13,14 @@ export class Comandas {
   usuario: Usuario;
 
   @Column()
-  producto: string;
+  cliente: string;
 
   @Column()
-  estado: string;  // ej. 'pendiente', 'en proceso', 'finalizada'
+  fecha: string;
+
+  @Column("decimal")
+  total: number;  // Total de la comanda
+
+  @Column("json")
+  items: object;  // Lista de productos/items de la comanda
 }

@@ -1,7 +1,7 @@
 // src/entities/Usuario.ts
 import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { Comandas } from "./Comandas";
+import { Comandas } from "./comandas";
 import { VentasDiarias } from "./Ventasdiarias";
 
 @Entity()
@@ -13,13 +13,7 @@ export class Usuario {
   nombre: string;
 
   @Column()
-  email: string;
-
-  @Column()
-  contraseña: string;
-
-  @Column()
-  rol: string;
+  correo: string;
 
   @OneToMany(() => Comandas, (comanda) => comanda.usuario)
   comandas: Comandas[];
