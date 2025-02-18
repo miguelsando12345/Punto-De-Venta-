@@ -1,10 +1,10 @@
-// src/entities/Comandas.ts
+// src/entities/VentasDiarias.ts
 import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
 import { Usuario } from "./Usuario";
 
 @Entity()
-export class Comandas {
+export class VentasDiarias {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -13,8 +13,8 @@ export class Comandas {
   usuario: Usuario;
 
   @Column()
-  producto: string;
+  fecha: string;
 
-  @Column()
-  estado: string;  // ej. 'pendiente', 'en proceso', 'finalizada'
+  @Column("decimal")
+  totalVentas: number;  // Total de ventas en el día
 }
