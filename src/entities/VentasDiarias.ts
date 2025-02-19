@@ -1,20 +1,11 @@
-// src/entities/VentasDiarias.ts
 import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
-import { Usuario } from "./Usuario";
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity()
 export class VentasDiarias {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Usuario)
-  @JoinColumn({ name: "usuario_id" })
-  usuario: Usuario;
-
-  @Column()
-  fecha: string;
-
-  @Column("decimal")
-  totalVentas: number;  // Total de ventas en el día
+  @Column("decimal", { precision: 10, scale: 2 })
+  totalVentas: number;
 }

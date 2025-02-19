@@ -1,28 +1,22 @@
 import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
-import { Comanda } from "./Comanda";
+import { Comandas } from "./comandas";
 import { Producto } from "./Producto";
 
-@Entity("detalle_comanda") // Nombre de la tabla en la BD
+@Entity()
 export class DetalleComanda {
   @PrimaryGeneratedColumn()
-  id_detalle!: number;
+  id: number;
 
-  @ManyToOne(() => Comanda, (comanda) => comanda.detalles, {
-    nullable: false,
-    onDelete: "CASCADE",
-  })
-  comanda!: Comanda;
+  @ManyToOne(() => Comandas, (comanda) => comanda.detalles)
+  comanda: Comandas;
 
-  @ManyToOne(() => Producto, (producto) => producto.detalles, {
-    nullable: false,
-    onDelete: "CASCADE",
-  })
-  producto!: Producto;
+  @ManyToOne(() => Producto, (producto) => producto.detalles)
+  producto: Producto;
 
-  @Column({ type: "int", nullable: false })
-  cantidad!: number;
+  @Column()
+  cantidad: number;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, nullable: false })
-  precio_unitario!: number;
+  @Column("decimal", { precision: 10, scale: 2 })
+  precioUnitario: number;
 }

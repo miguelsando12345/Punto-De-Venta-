@@ -1,5 +1,6 @@
 import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { Comandas } from "./comandas";
 
 @Entity()
 export class Clientes {
@@ -9,9 +10,9 @@ export class Clientes {
   @Column()
   nombre: string;
 
-  @Column()
-  correo: string;
-
-  @Column()
+  @Column({ unique: true })
   telefono: string;
+
+  @OneToMany(() => Comandas, (comanda) => comanda.cliente)
+  comandas: Comandas[];
 }

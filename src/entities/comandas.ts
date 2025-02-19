@@ -1,20 +1,32 @@
-// src/entities/Comandas.ts
 import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
-import { Usuario } from "./Usuario";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from "typeorm";
+import { Clientes } from "./Clientes";
+import { DetalleComanda } from "./DetalleComanda";
+import { Mesas } from "./mesas";
 
 @Entity()
 export class Comandas {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Usuario)
-  @JoinColumn({ name: "usuario_id" })
-  usuario: Usuario;
+  @ManyToOne(() => Clientes, (cliente) => cliente.comandas, { nullable: true })
+  cliente: Clientes;
 
-  @Column()
-  producto: string;
+  @ManyToOne(() => Mesas, (mesa) => mesa.comandas)
+  mesa: Mesas;
 
-  @Column()
-  estado: string;  // ej. 'pendiente', 'en proceso', 'finalizada'
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  fecha: Date;
+
+  @Column({ default: false })
+  pagada: boolean;
+
+  @OneToMany(() => DetalleComanda, (detalle) => detalle.comanda)
+  detalles: DetalleComanda[];
 }

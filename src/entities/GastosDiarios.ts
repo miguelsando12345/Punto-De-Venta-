@@ -2,22 +2,16 @@ import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity()
-export class Usuario {
+export class GastosDiarios {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  nombre: string;
-
-  @Column({ unique: true })
-  email: string;
+  @Column("decimal", { precision: 10, scale: 2 })
+  monto: number;
 
   @Column()
-  password: string;
-
-  @Column({ default: "usuario" }) // Puede ser "admin" o "usuario"
-  rol: string;
+  descripcion: string;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-  fechaRegistro: Date;
+  fecha: Date;
 }

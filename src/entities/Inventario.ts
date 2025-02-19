@@ -1,24 +1,17 @@
 import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
-import { Producto } from "./Producto"; // Relación con la entidad Producto
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity("inventario") // Nombre de la tabla en la BD
+@Entity()
 export class Inventario {
   @PrimaryGeneratedColumn()
-  id_insumo!: number;
+  id: number;
 
-  @Column({ type: "varchar", length: 100, nullable: false })
-  nombre!: string;
+  @Column()
+  nombre: string;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
-  cantidad_disponible!: number;
+  @Column()
+  cantidad: number;
 
-  @Column({ type: "enum", enum: ["Kg", "L", "Unidad"], default: "Unidad" })
-  unidad_medida!: string;
-
-  @ManyToOne(() => Producto, (producto) => producto.inventario, {
-    nullable: false,
-    onDelete: "CASCADE",
-  })
-  producto!: Producto;
+  @Column({ nullable: true })
+  descripcion: string;
 }

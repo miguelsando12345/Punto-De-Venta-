@@ -1,10 +1,5 @@
-import "reflect-metadata"; // Importación de reflect-metadata
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-} from "typeorm";
+import "reflect-metadata";
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity()
 export class Capturas {
@@ -12,11 +7,8 @@ export class Capturas {
   id: number;
 
   @Column()
-  descripcion: string;
+  urlImagen: string;
 
-  @Column()
-  imagen_url: string;
-
-  @CreateDateColumn()
-  fecha_creacion: Date;
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  fechaCaptura: Date;
 }

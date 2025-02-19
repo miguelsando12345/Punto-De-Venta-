@@ -1,15 +1,15 @@
 import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { Pagos } from "./Pagos";
+import { Producto } from "./Producto";
 
 @Entity()
-export class MetodosPago {
+export class CategoriaProductos {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
   nombre: string;
 
-  @OneToMany(() => Pagos, (pago) => pago.metodoPago)
-  pagos: Pagos[];
+  @OneToMany(() => Producto, (producto) => producto.categoria)
+  productos: Producto[];
 }
