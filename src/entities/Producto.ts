@@ -1,6 +1,13 @@
 import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from "typeorm";
 import { CategoriaProductos } from "./CategoriaProductos";
+import { DetalleComanda } from "./DetalleComanda";
 
 @Entity()
 export class Producto {
@@ -15,4 +22,8 @@ export class Producto {
 
   @ManyToOne(() => CategoriaProductos, (categoria) => categoria.productos)
   categoria: CategoriaProductos;
+
+  // Agregar esta línea para la relación con DetalleComanda
+  @OneToMany(() => DetalleComanda, (detalle) => detalle.producto)
+  detalles: DetalleComanda[];
 }
