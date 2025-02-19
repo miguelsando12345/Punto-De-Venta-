@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { Comandas } from "./comandas";
+import { Comandas } from "./Comandas";
 
 @Entity()
 export class Clientes {
