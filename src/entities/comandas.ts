@@ -8,7 +8,7 @@ import {
 } from "typeorm";
 import { Clientes } from "./Clientes";
 import { DetalleComanda } from "./DetalleComanda";
-import { Mesas } from "./Mesas";
+import { Mesas } from "./mesas";
 
 @Entity()
 export class Comandas {

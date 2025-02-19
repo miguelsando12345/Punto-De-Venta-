@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
-import { Comandas } from "./Comandas";
 import { Producto } from "./Producto";
+import { Comandas } from "./Comandas";
 
 @Entity()
 export class DetalleComanda {
