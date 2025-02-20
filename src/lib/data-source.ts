@@ -17,6 +17,7 @@ import { ProductosInsumo } from "@/entities/ProductosInsumo";
 import { Usuario } from "@/entities/Usuario";
 import { VentasDiarias } from "@/entities/VentasDiarias";
 
+// Configuración de la conexión a la base de datos
 export const AppDataSource = new DataSource({
   type: "mysql",
   host: process.env.DB_HOST,
@@ -43,3 +44,20 @@ export const AppDataSource = new DataSource({
     VentasDiarias,
   ],
 });
+
+// Función para inicializar la base de datos y verificar la conexión
+export const initializeDataSource = async () => {
+  try {
+    if (!AppDataSource.isInitialized) {
+      await AppDataSource.initialize();
+      console.log("Conexión a la base de datos establecida");
+    } else {
+      console.log("La base de datos ya está inicializada");
+    }
+  } catch (error) {
+    console.error("Error al conectar a la base de datos", error);
+  }
+};
+
+// Llamar a esta función para inicializar la base de datos cuando la aplicación inicie
+initializeDataSource();

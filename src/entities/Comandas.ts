@@ -1,32 +1,36 @@
-import "reflect-metadata";
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-} from "typeorm";
-import { Clientes } from "./Clientes";
-import { DetalleComanda } from "./DetalleComanda";
-import { Mesas } from "./Mesas";
+import "reflect-metadata"; // IMPORTA ESTO PRIMERO
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity()
+@Entity("comandas") // Nombre de la tabla en la BD
 export class Comandas {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
-  @ManyToOne(() => Clientes, (cliente) => cliente.comandas, { nullable: true })
-  cliente: Clientes;
+  @Column({ type: "int", nullable: false })
+  mesaId!: number; // ID de la mesa asociada a la comanda
 
-  @ManyToOne(() => Mesas, (mesa) => mesa.comandas)
-  mesa: Mesas;
+  @Column({ type: "varchar", length: 150, nullable: false })
+  estado!: string; // Estado de la comanda (ej: "Pendiente", "En preparación", "Servido")
+
+  @Column({ type: "decimal", precision: 10, scale: 2, nullable: false })
+  total!: number; // Monto total de la comanda
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-  fecha: Date;
+  fecha!: Date; // Fecha de creación de la comanda
 
-  @Column({ default: false })
-  pagada: boolean;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  notas?: string; // Notas o comentarios adicionales para la comanda
 
-  @OneToMany(() => DetalleComanda, (detalle) => detalle.comanda)
-  detalles: DetalleComanda[];
+  @Column({ type: "boolean", default: false })
+  pagado!: boolean; // Indica si la comanda ha sido pagada
+
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  creadoEn!: Date; // Fecha de creación del registro
+
+  @Column({
+    type: "timestamp",
+    default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP",
+  })
+  actualizadoEn!: Date; // Fecha de última actualización del registro
 }

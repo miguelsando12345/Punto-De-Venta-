@@ -1,18 +1,30 @@
-import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { Comandas } from "./Comandas";
+import "reflect-metadata"; // IMPORTA ESTO PRIMERO
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity()
+@Entity("mesas") // Nombre de la tabla en la BD
 export class Mesas {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
-  @Column()
-  numero: number;
+  @Column({ type: "varchar", length: 50, nullable: false })
+  nombre!: string; // Nombre o número de la mesa
 
-  @Column({ default: true })
-  disponible: boolean;
+  @Column({ type: "varchar", length: 255, nullable: true })
+  descripcion?: string; // Descripción opcional de la mesa (por ejemplo, ubicación)
 
-  @OneToMany(() => Comandas, (comanda) => comanda.mesa)
-  comandas: Comandas[];
+  @Column({ type: "int", nullable: false })
+  capacidad!: number; // Capacidad de personas que puede acomodar la mesa
+
+  @Column({ type: "boolean", default: true })
+  disponible!: boolean; // Indica si la mesa está disponible o reservada
+
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  creadoEn!: Date; // Fecha de creación del registro
+
+  @Column({
+    type: "timestamp",
+    default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP",
+  })
+  actualizadoEn!: Date; // Fecha de última actualización del registro
 }

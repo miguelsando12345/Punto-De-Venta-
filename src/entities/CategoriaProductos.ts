@@ -1,15 +1,28 @@
-import "reflect-metadata";
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { Producto } from "./Producto";
+import "reflect-metadata"; // IMPORTA ESTO PRIMERO
+import { Entity, PrimaryGeneratedColumn, Column, Unique } from "typeorm";
 
-@Entity()
+@Entity("categoria_productos") // Nombre de la tabla en la BD
+@Unique(["nombre"]) // Asegura que el nombre de la categoría sea único
 export class CategoriaProductos {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
-  @Column()
-  nombre: string;
+  @Column({ type: "varchar", length: 150, nullable: false })
+  nombre!: string; // Nombre de la categoría
 
-  @OneToMany(() => Producto, (producto) => producto.categoria)
-  productos: Producto[];
+  @Column({ type: "text", nullable: true })
+  descripcion?: string; // Descripción opcional de la categoría
+
+  @Column({ type: "boolean", default: true })
+  activo!: boolean; // Indica si la categoría está activa
+
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  creadoEn!: Date; // Fecha de creación del registro
+
+  @Column({
+    type: "timestamp",
+    default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP",
+  })
+  actualizadoEn!: Date; // Fecha de última actualización del registro
 }
