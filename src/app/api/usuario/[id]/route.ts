@@ -3,41 +3,34 @@ import { Usuario } from "@/entities/Usuario";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Obtener todos los usuarios
+ * Inicializa la base de datos si no está inicializada
  */
-export async function GET(req: NextRequest) {
-  try {
-    if (!AppDataSource.isInitialized) await AppDataSource.initialize();
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
-    const usuarios = await usuarioRepo.find();  // Cambié findOneBy por find()
-
-    if (!usuarios.length) {
-      return NextResponse.json(
-        { success: false, message: "No hay usuarios registrados" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: usuarios });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, message: "Error obteniendo usuarios", error },
-      { status: 500 }
-    );
+async function ensureDBConnection() {
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
   }
 }
 
 /**
- * Obtener un usuario por ID
+ * 📌 Obtener un usuario por ID (GET)
  */
-export async function GET_ONE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest) {
   try {
-    if (!AppDataSource.isInitialized) await AppDataSource.initialize();
+    await ensureDBConnection();
     const usuarioRepo = AppDataSource.getRepository(Usuario);
-    const usuario = await usuarioRepo.findOneBy({ id: Number(params.id) });
+
+    // Obtener ID desde la URL
+    const urlParts = req.nextUrl.pathname.split("/");
+    const usuarioId = Number(urlParts[urlParts.length - 1]);
+
+    if (isNaN(usuarioId)) {
+      return NextResponse.json(
+        { success: false, message: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    const usuario = await usuarioRepo.findOneBy({ id: usuarioId });
 
     if (!usuario) {
       return NextResponse.json(
@@ -56,53 +49,17 @@ export async function GET_ONE(
 }
 
 /**
- * Crear un nuevo usuario (POST)
+ * 📌 Actualizar un usuario por ID (PUT)
  */
-export async function POST(req: NextRequest) {
+export async function PUT(req: NextRequest) {
   try {
-    if (!AppDataSource.isInitialized) await AppDataSource.initialize();
+    await ensureDBConnection();
     const usuarioRepo = AppDataSource.getRepository(Usuario);
 
-    // Obtener los datos del body
-    const { nombre, email, direccion, telefono, imagenUrl, password, activo } =
-      await req.json();
+    // Obtener ID desde la URL
+    const urlParts = req.nextUrl.pathname.split("/");
+    const usuarioId = Number(urlParts[urlParts.length - 1]);
 
-    // Crear una nueva instancia de Usuario
-    const usuario = usuarioRepo.create({
-      nombre,
-      email,
-      direccion,
-      telefono,
-      imagenUrl,
-      password,
-      activo,
-    });
-
-    // Guardar el nuevo usuario en la base de datos
-    const usuarioGuardado = await usuarioRepo.save(usuario);
-
-    return NextResponse.json({ success: true, data: usuarioGuardado }, { status: 201 });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, message: "Error creando usuario", error },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Actualizar un usuario por ID (PUT)
- */
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    if (!AppDataSource.isInitialized) await AppDataSource.initialize();
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
-
-    // Validar que el ID sea un número válido
-    const usuarioId = Number(params.id);
     if (isNaN(usuarioId)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
@@ -110,7 +67,6 @@ export async function PUT(
       );
     }
 
-    // Buscar el usuario en la base de datos
     const usuario = await usuarioRepo.findOneBy({ id: usuarioId });
 
     if (!usuario) {
@@ -120,11 +76,9 @@ export async function PUT(
       );
     }
 
-    // Obtener datos del body
     const { nombre, email, direccion, telefono, imagenUrl, activo, password } =
       await req.json();
 
-    // Actualizar solo los campos proporcionados
     usuarioRepo.merge(usuario, {
       nombre,
       email,
@@ -134,6 +88,7 @@ export async function PUT(
       activo,
       password,
     });
+
     const usuarioActualizado = await usuarioRepo.save(usuario);
 
     return NextResponse.json({ success: true, data: usuarioActualizado });
@@ -146,18 +101,17 @@ export async function PUT(
 }
 
 /**
- * Eliminar un usuario por ID (DELETE)
+ * 📌 Eliminar un usuario por ID (DELETE)
  */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest) {
   try {
-    if (!AppDataSource.isInitialized) await AppDataSource.initialize();
+    await ensureDBConnection();
     const usuarioRepo = AppDataSource.getRepository(Usuario);
 
-    // Validar que el ID sea un número válido
-    const usuarioId = Number(params.id);
+    // Obtener ID desde la URL
+    const urlParts = req.nextUrl.pathname.split("/");
+    const usuarioId = Number(urlParts[urlParts.length - 1]);
+
     if (isNaN(usuarioId)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
@@ -165,7 +119,6 @@ export async function DELETE(
       );
     }
 
-    // Buscar el usuario en la base de datos
     const usuario = await usuarioRepo.findOneBy({ id: usuarioId });
 
     if (!usuario) {
@@ -175,7 +128,6 @@ export async function DELETE(
       );
     }
 
-    // Eliminar el usuario
     await usuarioRepo.remove(usuario);
 
     return NextResponse.json({
