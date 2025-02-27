@@ -3,7 +3,7 @@ import { Inventario } from "@/entities/Inventario";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Inicializa la base de datos si no está inicializada
+ * 📌 Inicializa la base de datos si no está inicializada
  */
 async function ensureDBConnection() {
   if (!AppDataSource.isInitialized) {
@@ -29,8 +29,13 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: inventario });
   } catch (error) {
+    console.error("Error al obtener el inventario:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo productos de inventario", error },
+      {
+        success: false,
+        message: "Error obteniendo productos de inventario",
+        error: (error as Error).message,
+      },
       { status: 500 }
     );
   }
@@ -44,35 +49,85 @@ export async function POST(req: NextRequest) {
     await ensureDBConnection();
     const inventarioRepo = AppDataSource.getRepository(Inventario);
 
-    const { productoId, cantidad, costoUnitario, valorTotal } = await req.json();
+    const body = await req.json();
+    console.log("Datos recibidos:", body); // 🔍 Verifica los datos recibidos en consola
 
-    // Verificar si el producto ya está en inventario
-    const existingInventario = await inventarioRepo.findOne({ where: { productoId } });
-    if (existingInventario) {
+    const { productoId, cantidad, costoUnitario, valorTotal } = body;
+
+    // Verifica si algún dato falta
+    if (!productoId || !cantidad || !costoUnitario || !valorTotal) {
+      console.error("Campos faltantes:", {
+        productoId,
+        cantidad,
+        costoUnitario,
+        valorTotal,
+      });
       return NextResponse.json(
-        { success: false, message: "El producto ya está registrado en inventario" },
+        { success: false, message: "Todos los campos son requeridos" },
         { status: 400 }
       );
     }
 
-    // Crear un nuevo registro de inventario
-    const inventario = inventarioRepo.create({
-      productoId,
-      cantidad,
-      costoUnitario,
-      valorTotal,
+    // Convertir valores a número
+    const parsedCantidad = Number(cantidad);
+    const parsedCostoUnitario = parseFloat(costoUnitario);
+    const parsedValorTotal = parseFloat(valorTotal);
+
+    if (
+      isNaN(parsedCantidad) ||
+      isNaN(parsedCostoUnitario) ||
+      isNaN(parsedValorTotal)
+    ) {
+      console.error("Valores inválidos:", {
+        cantidad,
+        costoUnitario,
+        valorTotal,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Cantidad, costo unitario y valor total deben ser números válidos",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si el producto ya está en inventario
+    const existingInventario = await inventarioRepo.findOne({
+      where: { productoId },
     });
 
-    // Guardar el producto en inventario
-    const inventarioGuardado = await inventarioRepo.save(inventario);
+    if (existingInventario) {
+      console.error("Producto duplicado:", productoId);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "El producto ya está registrado en inventario",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Crear y guardar en la base de datos
+    const nuevoInventario = inventarioRepo.create({
+      productoId,
+      cantidad: parsedCantidad,
+      costoUnitario: parsedCostoUnitario,
+      valorTotal: parsedValorTotal,
+    });
+
+    const inventarioGuardado = await inventarioRepo.save(nuevoInventario);
+    console.log("Producto agregado:", inventarioGuardado);
 
     return NextResponse.json(
       { success: true, data: inventarioGuardado },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error al agregar producto:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando producto en inventario", error },
+      { success: false, message: "Error interno del servidor", error },
       { status: 500 }
     );
   }
