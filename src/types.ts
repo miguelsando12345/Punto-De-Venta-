@@ -8,3 +8,9 @@ export interface Comanda {
   mesa: number;
   total: number;
 }
+// src/types.ts
+export interface Cliente {
+  id: number;
+  nombre: string;
+  telefono: string;
+}
