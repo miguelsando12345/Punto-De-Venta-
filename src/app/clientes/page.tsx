@@ -1,3 +1,4 @@
+"use client";
 import ClientesList from "@/components/clientes/ClientesList";
 import ClienteForm from "@/components/clientes/ClienteForm";
 import { Cliente } from "@/types";

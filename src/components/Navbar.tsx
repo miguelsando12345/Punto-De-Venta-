@@ -8,11 +8,11 @@ const Navbar = () => {
           RestaurantePOS
         </Link>
         <div className="flex space-x-6">
-          <Link href="/" className="text-white hover:underline">
-            Inicio
+          <Link href="/inventario" className="text-white hover:underline">
+            Inventario
           </Link>
-          <Link href="/menu" className="text-white hover:underline">
-            Menú
+          <Link href="/clientes" className="text-white hover:underline">
+            producto
           </Link>
           <Link href="/ordenes" className="text-white hover:underline">
             Órdenes
