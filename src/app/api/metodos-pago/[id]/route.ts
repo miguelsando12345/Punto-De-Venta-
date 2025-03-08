@@ -1,15 +1,5 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { AppDataSource } from "@/lib/data-source";
-import { MetodosPago } from "@/entities/MetodosPago";
-
-/**
- * 📌 Asegura la conexión a la base de datos
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener un método de pago por ID (GET)
@@ -19,10 +9,20 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const metodosRepo = AppDataSource.getRepository(MetodosPago);
-    const metodo = await metodosRepo.findOne({
-      where: { id: Number(params.id) },
+    const id_metodo_pago = parseInt(params.id);
+
+    if (isNaN(id_metodo_pago)) {
+      return NextResponse.json(
+        { success: false, message: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    const metodo = await prisma.metodosPago.findUnique({
+      where: { id_metodo_pago },
+      include: {
+        pagos: true,
+      },
     });
 
     if (!metodo) {
@@ -32,48 +32,47 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: metodo });
+    return NextResponse.json({ success: true, data: metodo }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/metodos-pago/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo método de pago", error },
+      { success: false, message: "Error obteniendo método de pago" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar un método de pago por ID (PUT)
+ * 📌 Actualizar un método de pago por ID (PATCH)
  */
-export async function PUT(
+export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const metodosRepo = AppDataSource.getRepository(MetodosPago);
-    const metodo = await metodosRepo.findOne({
-      where: { id: Number(params.id) },
-    });
+    const id_metodo_pago = parseInt(params.id);
 
-    if (!metodo) {
+    if (isNaN(id_metodo_pago)) {
       return NextResponse.json(
-        { success: false, message: "Método de pago no encontrado" },
-        { status: 404 }
+        { success: false, message: "ID inválido" },
+        { status: 400 }
       );
     }
 
-    const { nombre, monto, activo } = await req.json();
+    const body = await req.json();
+    const metodoActualizado = await prisma.metodosPago.update({
+      where: { id_metodo_pago },
+      data: body,
+    });
 
-    if (nombre) metodo.nombre = nombre;
-    if (monto !== undefined) metodo.monto = monto;
-    if (activo !== undefined) metodo.activo = activo;
-
-    const metodoActualizado = await metodosRepo.save(metodo);
-
-    return NextResponse.json({ success: true, data: metodoActualizado });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando método de pago", error },
+      { success: true, data: metodoActualizado },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/metodos-pago/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando método de pago" },
       { status: 500 }
     );
   }
@@ -87,28 +86,25 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const metodosRepo = AppDataSource.getRepository(MetodosPago);
-    const metodo = await metodosRepo.findOne({
-      where: { id: Number(params.id) },
-    });
+    const id_metodo_pago = parseInt(params.id);
 
-    if (!metodo) {
+    if (isNaN(id_metodo_pago)) {
       return NextResponse.json(
-        { success: false, message: "Método de pago no encontrado" },
-        { status: 404 }
+        { success: false, message: "ID inválido" },
+        { status: 400 }
       );
     }
 
-    await metodosRepo.remove(metodo);
+    await prisma.metodosPago.delete({ where: { id_metodo_pago } });
 
-    return NextResponse.json({
-      success: true,
-      message: "Método de pago eliminado correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando método de pago", error },
+      { success: true, message: "Método de pago eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/metodos-pago/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando método de pago" },
       { status: 500 }
     );
   }
