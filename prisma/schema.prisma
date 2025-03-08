@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuarios {
+  id_usuario         Int     @id @default(autoincrement())
+  nombre             String
+  nombre_usuario     String  @unique
+  correo_electronico String  @unique
+  pin                String
+  password           String
+  rol                EnumRol
+
+  comandas Comandas[]
+}
+
+enum EnumRol {
+  Cajero
+  Mesero
+  Administrador
+}
+
+model Clientes {
+  id_cliente Int     @id @default(autoincrement())
+  telefono   String
+  direccion  String?
+
+  comandas Comandas[]
+}
+
+model Mesas {
+  id_mesa   Int            @id @default(autoincrement())
+  numero    Int
+  capacidad Int
+  estado    EnumEstadoMesa
+
+  comandas Comandas[]
+}
+
+enum EnumEstadoMesa {
+  Libre
+  Ocupada
+  Reservada
+}
+
+model Productos {
+  id_producto  Int     @id @default(autoincrement())
+  nombre       String
+  descripcion  String?
+  precio       Float
+  categoria_id Int
+  disponible   Boolean @default(true)
+
+  categoria        CategoriaProductos @relation(fields: [categoria_id], references: [id_categoria])
+  detalle_comanda  DetalleComanda[]
+  productos_insumo ProductosInsumo[]
+}
+
+model CategoriaProductos {
+  id_categoria Int    @id @default(autoincrement())
+  nombre       String
+
+  productos Productos[]
+}
+
+model Comandas {
+  id_comanda Int               @id @default(autoincrement())
+  id_mesa    Int
+  id_usuario Int
+  id_cliente Int
+  estado     EnumEstadoComanda
+
+  usuario         Usuarios         @relation(fields: [id_usuario], references: [id_usuario])
+  cliente         Clientes         @relation(fields: [id_cliente], references: [id_cliente])
+  mesa            Mesas            @relation(fields: [id_mesa], references: [id_mesa])
+  detalle_comanda DetalleComanda[]
+  facturas        Facturas[]
+  pagos           Pagos[]
+}
+
+enum EnumEstadoComanda {
+  Pendiente
+  Preparando
+  Lista
+  Entregado
+  Cancelado
+}
+
+model DetalleComanda {
+  id_detalle      Int   @id @default(autoincrement())
+  id_comanda      Int
+  id_producto     Int
+  cantidad        Int
+  precio_unitario Float
+
+  comanda  Comandas  @relation(fields: [id_comanda], references: [id_comanda])
+  producto Productos @relation(fields: [id_producto], references: [id_producto])
+}
+
+model Facturas {
+  id_factura Int      @id @default(autoincrement())
+  id_comanda Int
+  fecha_hora DateTime @default(now())
+
+  comanda Comandas @relation(fields: [id_comanda], references: [id_comanda])
+}
+
+model VentasDiarias {
+  id_venta Int      @id @default(autoincrement())
+  fecha    DateTime @default(now())
+  total    Float
+}
+
+model Pagos {
+  id_pago        Int      @id @default(autoincrement())
+  id_comanda     Int
+  id_metodo_pago Int
+  fecha_hora     DateTime @default(now())
+
+  comanda     Comandas    @relation(fields: [id_comanda], references: [id_comanda])
+  metodo_pago MetodosPago @relation(fields: [id_metodo_pago], references: [id_metodo_pago])
+}
+
+model MetodosPago {
+  id_metodo_pago Int    @id @default(autoincrement())
+  nombre         String
+
+  pagos Pagos[]
+}
+
+model GastosDiarios {
+  id_gasto    Int      @id @default(autoincrement())
+  fecha       DateTime @default(now())
+  descripcion String
+  monto       Float
+}
+
+model Inventario {
+  id_insumo         Int              @id @default(autoincrement())
+  nombre            String
+  unidad_disponible Float
+  unidad_medida     EnumUnidadMedida
+
+  productos_insumo ProductosInsumo[]
+}
+
+enum EnumUnidadMedida {
+  Kg
+  Litros
+  Unidad
+}
+
+model ProductosInsumo {
+  id_producto        Int
+  id_insumo          Int
+  cantidad_requerida Float
+
+  producto Productos  @relation(fields: [id_producto], references: [id_producto])
+  insumo   Inventario @relation(fields: [id_insumo], references: [id_insumo])
+
+  @@id([id_producto, id_insumo])
+}
