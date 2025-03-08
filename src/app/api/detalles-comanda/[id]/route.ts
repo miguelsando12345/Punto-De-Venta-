@@ -1,15 +1,5 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { AppDataSource } from "@/lib/data-source";
-import { DetalleComanda } from "@/entities/DetalleComanda";
-
-/**
- * 📌 Asegura la conexión a la base de datos
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener un detalle de comanda por ID (GET)
@@ -19,10 +9,21 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const detallesRepo = AppDataSource.getRepository(DetalleComanda);
-    const detalle = await detallesRepo.findOne({
-      where: { id: Number(params.id) },
+    const id_detalle = parseInt(params.id);
+
+    if (isNaN(id_detalle)) {
+      return NextResponse.json(
+        { success: false, message: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    const detalle = await prisma.detalleComanda.findUnique({
+      where: { id_detalle },
+      include: {
+        comanda: true,
+        producto: true,
+      },
     });
 
     if (!detalle) {
@@ -32,54 +33,47 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: detalle });
+    return NextResponse.json({ success: true, data: detalle }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/detalles-comanda/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo detalle de comanda", error },
+      { success: false, message: "Error obteniendo detalle de comanda" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar un detalle de comanda por ID (PUT)
+ * 📌 Actualizar un detalle de comanda por ID (PATCH)
  */
-export async function PUT(
+export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const detallesRepo = AppDataSource.getRepository(DetalleComanda);
-    const detalle = await detallesRepo.findOne({
-      where: { id: Number(params.id) },
-    });
+    const id_detalle = parseInt(params.id);
 
-    if (!detalle) {
+    if (isNaN(id_detalle)) {
       return NextResponse.json(
-        { success: false, message: "Detalle de comanda no encontrado" },
-        { status: 404 }
+        { success: false, message: "ID inválido" },
+        { status: 400 }
       );
     }
 
-    const { comandaId, productoId, cantidad, precioUnitario } =
-      await req.json();
+    const body = await req.json();
+    const detalleActualizado = await prisma.detalleComanda.update({
+      where: { id_detalle },
+      data: body,
+    });
 
-    if (comandaId) detalle.comandaId = comandaId;
-    if (productoId) detalle.productoId = productoId;
-    if (cantidad) detalle.cantidad = cantidad;
-    if (precioUnitario) detalle.precioUnitario = precioUnitario;
-
-    const detalleActualizado = await detallesRepo.save(detalle);
-
-    return NextResponse.json({ success: true, data: detalleActualizado });
-  } catch (error) {
     return NextResponse.json(
-      {
-        success: false,
-        message: "Error actualizando detalle de comanda",
-        error,
-      },
+      { success: true, data: detalleActualizado },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/detalles-comanda/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando detalle de comanda" },
       { status: 500 }
     );
   }
@@ -93,28 +87,25 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const detallesRepo = AppDataSource.getRepository(DetalleComanda);
-    const detalle = await detallesRepo.findOne({
-      where: { id: Number(params.id) },
-    });
+    const id_detalle = parseInt(params.id);
 
-    if (!detalle) {
+    if (isNaN(id_detalle)) {
       return NextResponse.json(
-        { success: false, message: "Detalle de comanda no encontrado" },
-        { status: 404 }
+        { success: false, message: "ID inválido" },
+        { status: 400 }
       );
     }
 
-    await detallesRepo.remove(detalle);
+    await prisma.detalleComanda.delete({ where: { id_detalle } });
 
-    return NextResponse.json({
-      success: true,
-      message: "Detalle de comanda eliminado correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando detalle de comanda", error },
+      { success: true, message: "Detalle de comanda eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/detalles-comanda/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando detalle de comanda" },
       { status: 500 }
     );
   }

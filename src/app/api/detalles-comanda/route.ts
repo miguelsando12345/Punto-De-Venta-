@@ -1,40 +1,33 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { AppDataSource } from "@/lib/data-source";
-import { DetalleComanda } from "@/entities/DetalleComanda";
 
 /**
- * 📌 Asegura la conexión a la base de datos
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
-
-/**
- * 📌 Obtener todos los detalles de comanda (GET)
+ * 📌 Obtener todos los detalles de comandas (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const detallesRepo = AppDataSource.getRepository(DetalleComanda);
-    const detalles = await detallesRepo.find();
+    const detalles = await prisma.detalleComanda.findMany({
+      include: {
+        comanda: true,
+        producto: true,
+      },
+    });
 
     if (!detalles.length) {
       return NextResponse.json(
-        { success: false, message: "No hay detalles de comanda registrados" },
+        { success: false, message: "No hay detalles de comandas registrados" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: detalles });
-  } catch (error) {
     return NextResponse.json(
-      {
-        success: false,
-        message: "Error obteniendo detalles de comanda",
-        error,
-      },
+      { success: true, data: detalles },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en GET /api/detalles-comanda:", error);
+    return NextResponse.json(
+      { success: false, message: "Error obteniendo detalles de comandas" },
       { status: 500 }
     );
   }
@@ -45,35 +38,33 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const detallesRepo = AppDataSource.getRepository(DetalleComanda);
-
-    const { comandaId, productoId, cantidad, precioUnitario } =
+    const { id_comanda, id_producto, cantidad, precio_unitario } =
       await req.json();
 
-    if (!comandaId || !productoId || !cantidad || !precioUnitario) {
+    if (!id_comanda || !id_producto || !cantidad || !precio_unitario) {
       return NextResponse.json(
         { success: false, message: "Todos los campos son obligatorios" },
         { status: 400 }
       );
     }
 
-    const nuevoDetalle = detallesRepo.create({
-      comandaId,
-      productoId,
-      cantidad,
-      precioUnitario,
+    const nuevoDetalle = await prisma.detalleComanda.create({
+      data: {
+        id_comanda,
+        id_producto,
+        cantidad,
+        precio_unitario,
+      },
     });
 
-    const detalleGuardado = await detallesRepo.save(nuevoDetalle);
-
     return NextResponse.json(
-      { success: true, data: detalleGuardado },
+      { success: true, data: nuevoDetalle },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/detalles-comanda:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando detalle de comanda", error },
+      { success: false, message: "Error creando detalle de comanda" },
       { status: 500 }
     );
   }
