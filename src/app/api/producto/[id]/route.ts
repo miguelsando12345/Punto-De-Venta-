@@ -1,36 +1,27 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Producto } from "@/entities/Producto";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener un producto por ID (GET)
  */
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const productoRepo = AppDataSource.getRepository(Producto);
+    const id_producto = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const productoId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(productoId)) {
+    if (isNaN(id_producto)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const producto = await productoRepo.findOneBy({ id: productoId });
+    const producto = await prisma.productos.findUnique({
+      where: { id_producto },
+      include: { categoria: true }, // Incluye la categoría del producto
+    });
 
     if (!producto) {
       return NextResponse.json(
@@ -39,62 +30,50 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: producto });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error obteniendo producto", error },
+      { success: true, data: producto },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en GET /api/producto/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error obteniendo producto" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar un producto por ID (PUT)
+ * 📌 Actualizar un producto por ID (PATCH)
  */
-export async function PUT(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const productoRepo = AppDataSource.getRepository(Producto);
+    const id_producto = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const productoId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(productoId)) {
+    if (isNaN(id_producto)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const producto = await productoRepo.findOneBy({ id: productoId });
-
-    if (!producto) {
-      return NextResponse.json(
-        { success: false, message: "Producto no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    const { nombre, descripcion, precio, stock, categoria, imagenUrl, disponible } =
-      await req.json();
-
-    productoRepo.merge(producto, {
-      nombre,
-      descripcion,
-      precio,
-      stock,
-      categoria,
-      imagenUrl,
-      disponible,
+    const body = await req.json();
+    const productoActualizado = await prisma.productos.update({
+      where: { id_producto },
+      data: body,
     });
 
-    const productoActualizado = await productoRepo.save(producto);
-
-    return NextResponse.json({ success: true, data: productoActualizado });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando producto", error },
+      { success: true, data: productoActualizado },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/producto/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando producto" },
       { status: 500 }
     );
   }
@@ -103,40 +82,30 @@ export async function PUT(req: NextRequest) {
 /**
  * 📌 Eliminar un producto por ID (DELETE)
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const productoRepo = AppDataSource.getRepository(Producto);
+    const id_producto = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const productoId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(productoId)) {
+    if (isNaN(id_producto)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const producto = await productoRepo.findOneBy({ id: productoId });
+    await prisma.productos.delete({ where: { id_producto } });
 
-    if (!producto) {
-      return NextResponse.json(
-        { success: false, message: "Producto no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    await productoRepo.remove(producto);
-
-    return NextResponse.json({
-      success: true,
-      message: "Producto eliminado correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando producto", error },
+      { success: true, message: "Producto eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/producto/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando producto" },
       { status: 500 }
     );
   }

@@ -1,24 +1,14 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Producto } from "@/entities/Producto";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener todos los productos (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const productoRepo = AppDataSource.getRepository(Producto);
-    const productos = await productoRepo.find();
+    const productos = await prisma.productos.findMany({
+      include: { categoria: true }, // Incluye la información de la categoría del producto
+    });
 
     if (!productos.length) {
       return NextResponse.json(
@@ -27,10 +17,14 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ success: true, data: productos });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error obteniendo productos", error },
+      { success: true, data: productos },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en GET /api/producto:", error);
+    return NextResponse.json(
+      { success: false, message: "Error obteniendo productos" },
       { status: 500 }
     );
   }
@@ -41,42 +35,37 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const productoRepo = AppDataSource.getRepository(Producto);
-
-    const { nombre, descripcion, precio, stock, categoria, imagenUrl, disponible } =
+    const { nombre, descripcion, precio, categoria_id, disponible } =
       await req.json();
 
-    // Verificar si el nombre del producto ya existe
-    const existingProducto = await productoRepo.findOne({ where: { nombre } });
-    if (existingProducto) {
+    if (!nombre || !precio || !categoria_id) {
       return NextResponse.json(
-        { success: false, message: "El producto ya está registrado" },
+        {
+          success: false,
+          message: "Nombre, precio y categoría son obligatorios",
+        },
         { status: 400 }
       );
     }
 
-    // Crear un nuevo producto
-    const producto = productoRepo.create({
-      nombre,
-      descripcion,
-      precio,
-      stock,
-      categoria,
-      imagenUrl,
-      disponible,
+    const nuevoProducto = await prisma.productos.create({
+      data: {
+        nombre,
+        descripcion,
+        precio,
+        categoria_id,
+        disponible: disponible ?? true, // Si no se envía, por defecto es true
+      },
     });
 
-    // Guardar el producto en la base de datos
-    const productoGuardado = await productoRepo.save(producto);
-
     return NextResponse.json(
-      { success: true, data: productoGuardado },
+      { success: true, data: nuevoProducto },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/producto:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando producto", error },
+      { success: false, message: "Error creando producto" },
       { status: 500 }
     );
   }
