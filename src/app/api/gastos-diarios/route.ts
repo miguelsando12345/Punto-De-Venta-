@@ -1,24 +1,12 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { AppDataSource } from "@/lib/data-source";
-import { GastosDiarios } from "@/entities/GastosDiarios";
-
-/**
- * 📌 Asegura la conexión a la base de datos
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener todos los gastos diarios (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const gastosRepo = AppDataSource.getRepository(GastosDiarios);
-    const gastos = await gastosRepo.find();
+    const gastos = await prisma.gastosDiarios.findMany();
 
     if (!gastos.length) {
       return NextResponse.json(
@@ -27,10 +15,11 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ success: true, data: gastos });
+    return NextResponse.json({ success: true, data: gastos }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/gastos-diarios:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo gastos", error },
+      { success: false, message: "Error obteniendo gastos diarios" },
       { status: 500 }
     );
   }
@@ -41,34 +30,31 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const gastosRepo = AppDataSource.getRepository(GastosDiarios);
+    const { fecha, descripcion, monto } = await req.json();
 
-    const { descripcion, monto, categoria, procesado } = await req.json();
-
-    if (!descripcion || !monto || !categoria) {
+    if (!fecha || !descripcion || !monto) {
       return NextResponse.json(
-        { success: false, message: "Faltan datos obligatorios" },
+        { success: false, message: "Todos los campos son obligatorios" },
         { status: 400 }
       );
     }
 
-    const nuevoGasto = gastosRepo.create({
-      descripcion,
-      monto,
-      categoria,
-      procesado: procesado ?? false, // Si no se envía, se asigna `false`
+    const nuevoGasto = await prisma.gastosDiarios.create({
+      data: {
+        fecha: new Date(fecha),
+        descripcion,
+        monto,
+      },
     });
 
-    const gastoGuardado = await gastosRepo.save(nuevoGasto);
-
     return NextResponse.json(
-      { success: true, data: gastoGuardado },
+      { success: true, data: nuevoGasto },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/gastos-diarios:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando gasto", error },
+      { success: false, message: "Error creando gasto diario" },
       { status: 500 }
     );
   }

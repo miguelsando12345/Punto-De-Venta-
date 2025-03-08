@@ -1,138 +1,110 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Inventario } from "@/entities/Inventario";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Inicializa la base de datos si no está inicializada
+ * 📌 Obtener un insumo del inventario por ID (GET)
  */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
-
-/**
- * 📌 Obtener un producto en inventario por ID (GET)
- */
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const inventarioRepo = AppDataSource.getRepository(Inventario);
+    const id_insumo = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const inventarioId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(inventarioId)) {
+    if (isNaN(id_insumo)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const inventario = await inventarioRepo.findOneBy({ id: inventarioId });
+    const insumo = await prisma.inventario.findUnique({
+      where: { id_insumo },
+      include: {
+        productos_insumo: true,
+      },
+    });
 
-    if (!inventario) {
+    if (!insumo) {
       return NextResponse.json(
-        { success: false, message: "Producto no encontrado en inventario" },
+        { success: false, message: "Insumo no encontrado" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: inventario });
+    return NextResponse.json({ success: true, data: insumo }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/inventario/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo producto en inventario", error },
+      { success: false, message: "Error obteniendo insumo del inventario" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar un producto en inventario por ID (PUT)
+ * 📌 Actualizar un insumo del inventario por ID (PATCH)
  */
-export async function PUT(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const inventarioRepo = AppDataSource.getRepository(Inventario);
+    const id_insumo = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const inventarioId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(inventarioId)) {
+    if (isNaN(id_insumo)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const inventario = await inventarioRepo.findOneBy({ id: inventarioId });
-
-    if (!inventario) {
-      return NextResponse.json(
-        { success: false, message: "Producto no encontrado en inventario" },
-        { status: 404 }
-      );
-    }
-
-    const { productoId, cantidad, costoUnitario, valorTotal } = await req.json();
-
-    inventarioRepo.merge(inventario, {
-      productoId,
-      cantidad,
-      costoUnitario,
-      valorTotal,
+    const body = await req.json();
+    const insumoActualizado = await prisma.inventario.update({
+      where: { id_insumo },
+      data: body,
     });
 
-    const inventarioActualizado = await inventarioRepo.save(inventario);
-
-    return NextResponse.json({ success: true, data: inventarioActualizado });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando producto en inventario", error },
+      { success: true, data: insumoActualizado },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/inventario/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando insumo del inventario" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Eliminar un producto en inventario por ID (DELETE)
+ * 📌 Eliminar un insumo del inventario por ID (DELETE)
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const inventarioRepo = AppDataSource.getRepository(Inventario);
+    const id_insumo = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const inventarioId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(inventarioId)) {
+    if (isNaN(id_insumo)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const inventario = await inventarioRepo.findOneBy({ id: inventarioId });
+    await prisma.inventario.delete({ where: { id_insumo } });
 
-    if (!inventario) {
-      return NextResponse.json(
-        { success: false, message: "Producto no encontrado en inventario" },
-        { status: 404 }
-      );
-    }
-
-    await inventarioRepo.remove(inventario);
-
-    return NextResponse.json({
-      success: true,
-      message: "Producto eliminado correctamente de inventario",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando producto de inventario", error },
+      { success: true, message: "Insumo eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/inventario/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando insumo del inventario" },
       { status: 500 }
     );
   }

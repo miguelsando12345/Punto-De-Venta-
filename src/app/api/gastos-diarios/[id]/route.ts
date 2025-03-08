@@ -1,15 +1,5 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { AppDataSource } from "@/lib/data-source";
-import { GastosDiarios } from "@/entities/GastosDiarios";
-
-/**
- * 📌 Asegura la conexión a la base de datos
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener un gasto diario por ID (GET)
@@ -19,10 +9,17 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const gastosRepo = AppDataSource.getRepository(GastosDiarios);
-    const gasto = await gastosRepo.findOne({
-      where: { id: Number(params.id) },
+    const id_gasto = parseInt(params.id);
+
+    if (isNaN(id_gasto)) {
+      return NextResponse.json(
+        { success: false, message: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    const gasto = await prisma.gastosDiarios.findUnique({
+      where: { id_gasto },
     });
 
     if (!gasto) {
@@ -32,49 +29,47 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: gasto });
+    return NextResponse.json({ success: true, data: gasto }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/gastos-diarios/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo el gasto", error },
+      { success: false, message: "Error obteniendo gasto" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar un gasto diario por ID (PUT)
+ * 📌 Actualizar un gasto diario por ID (PATCH)
  */
-export async function PUT(
+export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const gastosRepo = AppDataSource.getRepository(GastosDiarios);
-    const gasto = await gastosRepo.findOne({
-      where: { id: Number(params.id) },
-    });
+    const id_gasto = parseInt(params.id);
 
-    if (!gasto) {
+    if (isNaN(id_gasto)) {
       return NextResponse.json(
-        { success: false, message: "Gasto no encontrado" },
-        { status: 404 }
+        { success: false, message: "ID inválido" },
+        { status: 400 }
       );
     }
 
-    const { descripcion, monto, categoria, procesado } = await req.json();
+    const body = await req.json();
+    const gastoActualizado = await prisma.gastosDiarios.update({
+      where: { id_gasto },
+      data: body,
+    });
 
-    if (descripcion) gasto.descripcion = descripcion;
-    if (monto) gasto.monto = monto;
-    if (categoria) gasto.categoria = categoria;
-    if (procesado !== undefined) gasto.procesado = procesado;
-
-    const gastoActualizado = await gastosRepo.save(gasto);
-
-    return NextResponse.json({ success: true, data: gastoActualizado });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando el gasto", error },
+      { success: true, data: gastoActualizado },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/gastos-diarios/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando gasto" },
       { status: 500 }
     );
   }
@@ -88,28 +83,25 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const gastosRepo = AppDataSource.getRepository(GastosDiarios);
-    const gasto = await gastosRepo.findOne({
-      where: { id: Number(params.id) },
-    });
+    const id_gasto = parseInt(params.id);
 
-    if (!gasto) {
+    if (isNaN(id_gasto)) {
       return NextResponse.json(
-        { success: false, message: "Gasto no encontrado" },
-        { status: 404 }
+        { success: false, message: "ID inválido" },
+        { status: 400 }
       );
     }
 
-    await gastosRepo.remove(gasto);
+    await prisma.gastosDiarios.delete({ where: { id_gasto } });
 
-    return NextResponse.json({
-      success: true,
-      message: "Gasto eliminado correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando el gasto", error },
+      { success: true, message: "Gasto eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/gastos-diarios/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando gasto" },
       { status: 500 }
     );
   }
