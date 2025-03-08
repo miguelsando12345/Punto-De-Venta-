@@ -1,36 +1,34 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Comandas } from "@/entities/Comandas";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener una comanda por ID (GET)
  */
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const comandasRepo = AppDataSource.getRepository(Comandas);
+    const id_comanda = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const comandaId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(comandaId)) {
+    if (isNaN(id_comanda)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const comanda = await comandasRepo.findOneBy({ id: comandaId });
+    const comanda = await prisma.comandas.findUnique({
+      where: { id_comanda },
+      include: {
+        usuario: true,
+        cliente: true,
+        mesa: true,
+        detalle_comanda: true,
+        facturas: true,
+        pagos: true,
+      },
+    });
 
     if (!comanda) {
       return NextResponse.json(
@@ -39,60 +37,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: comanda });
+    return NextResponse.json({ success: true, data: comanda }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/comandas/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo comanda", error },
+      { success: false, message: "Error obteniendo comanda" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar una comanda por ID (PUT)
+ * 📌 Actualizar una comanda por ID (PATCH)
  */
-export async function PUT(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const comandasRepo = AppDataSource.getRepository(Comandas);
+    const id_comanda = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const comandaId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(comandaId)) {
+    if (isNaN(id_comanda)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const comanda = await comandasRepo.findOneBy({ id: comandaId });
-
-    if (!comanda) {
-      return NextResponse.json(
-        { success: false, message: "Comanda no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    const { mesaId, estado, total, fecha, notas, pagado } = await req.json();
-
-    comandasRepo.merge(comanda, {
-      mesaId,
-      estado,
-      total,
-      fecha,
-      notas,
-      pagado,
+    const body = await req.json();
+    const comandaActualizada = await prisma.comandas.update({
+      where: { id_comanda },
+      data: body,
     });
 
-    const comandaActualizada = await comandasRepo.save(comanda);
-
-    return NextResponse.json({ success: true, data: comandaActualizada });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando comanda", error },
+      { success: true, data: comandaActualizada },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/comandas/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando comanda" },
       { status: 500 }
     );
   }
@@ -101,40 +86,30 @@ export async function PUT(req: NextRequest) {
 /**
  * 📌 Eliminar una comanda por ID (DELETE)
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const comandasRepo = AppDataSource.getRepository(Comandas);
+    const id_comanda = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const comandaId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(comandaId)) {
+    if (isNaN(id_comanda)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const comanda = await comandasRepo.findOneBy({ id: comandaId });
+    await prisma.comandas.delete({ where: { id_comanda } });
 
-    if (!comanda) {
-      return NextResponse.json(
-        { success: false, message: "Comanda no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    await comandasRepo.remove(comanda);
-
-    return NextResponse.json({
-      success: true,
-      message: "Comanda eliminada correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando comanda", error },
+      { success: true, message: "Comanda eliminada correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/comandas/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando comanda" },
       { status: 500 }
     );
   }
