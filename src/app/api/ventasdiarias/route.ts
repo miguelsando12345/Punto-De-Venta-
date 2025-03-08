@@ -1,72 +1,59 @@
-import { AppDataSource } from "@/lib/data-source";
-import { VentasDiarias } from "@/entities/VentasDiarias";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
-
-/**
- * 📌 Obtener todos los registros de ventas diarias (GET)
+ * 📌 Obtener todas las ventas diarias (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const ventasRepo = AppDataSource.getRepository(VentasDiarias);
-    const ventas = await ventasRepo.find();
+    const ventas = await prisma.ventasDiarias.findMany();
 
     if (!ventas.length) {
       return NextResponse.json(
-        { success: false, message: "No hay registros de ventas diarias" },
+        { success: false, message: "No hay ventas registradas" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: ventas });
+    return NextResponse.json({ success: true, data: ventas }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/ventas-diarias:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo ventas diarias", error },
+      { success: false, message: "Error obteniendo ventas diarias" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Crear un nuevo registro de ventas diarias (POST)
+ * 📌 Registrar una nueva venta diaria (POST)
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const ventasRepo = AppDataSource.getRepository(VentasDiarias);
+    const { fecha, total } = await req.json();
 
-    const { fecha, totalVentas, totalProductosVendidos, totalDescuentos, totalImpuestos, totalNeto } =
-      await req.json();
+    if (!fecha || !total) {
+      return NextResponse.json(
+        { success: false, message: "Fecha y total son obligatorios" },
+        { status: 400 }
+      );
+    }
 
-    // Crear un nuevo registro de ventas diarias
-    const ventas = ventasRepo.create({
-      fecha,
-      totalVentas,
-      totalProductosVendidos,
-      totalDescuentos,
-      totalImpuestos,
-      totalNeto,
+    const nuevaVenta = await prisma.ventasDiarias.create({
+      data: {
+        fecha: new Date(fecha),
+        total,
+      },
     });
 
-    // Guardar el registro en la base de datos
-    const ventasGuardadas = await ventasRepo.save(ventas);
-
     return NextResponse.json(
-      { success: true, data: ventasGuardadas },
+      { success: true, data: nuevaVenta },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/ventas-diarias:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando registro de ventas diarias", error },
+      { success: false, message: "Error registrando venta diaria" },
       { status: 500 }
     );
   }
