@@ -1,36 +1,30 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Clientes } from "@/entities/Clientes"; // Cambio a la entidad Clientes
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener todos los clientes (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const clienteRepo = AppDataSource.getRepository(Clientes); // Cambio de repositorio
-    const clientes = await clienteRepo.find(); // Obtener clientes
+    const clientes = await prisma.clientes.findMany({
+      include: { comandas: true }, // Incluir comandas asociadas al cliente
+    });
 
     if (!clientes.length) {
       return NextResponse.json(
-        { success: false, message: "No hay clientes registrados" }, // Cambio del mensaje
+        { success: false, message: "No hay clientes registrados" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: clientes });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error obteniendo clientes", error }, // Cambio del mensaje
+      { success: true, data: clientes },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en GET /api/clientes:", error);
+    return NextResponse.json(
+      { success: false, message: "Error obteniendo clientes" },
       { status: 500 }
     );
   }
@@ -41,40 +35,30 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const clienteRepo = AppDataSource.getRepository(Clientes); // Cambio de repositorio
+    const { telefono, direccion } = await req.json();
 
-    const { nombre, apellido, correo, direccion, telefono, activo } = await req.json(); // Cambio a campos de cliente
-
-    // Verificar si el correo ya existe
-    const existingClient = await clienteRepo.findOne({ where: { correo } }); // Verificar por correo
-    if (existingClient) {
+    if (!telefono) {
       return NextResponse.json(
-        { success: false, message: "El correo ya está registrado" },
+        { success: false, message: "El teléfono es obligatorio" },
         { status: 400 }
       );
     }
 
-    // Crear un nuevo cliente
-    const cliente = clienteRepo.create({
-      nombre,
-      apellido, // Añadir apellido
-      correo,
-      direccion,
-      telefono,
-      activo,
+    const nuevoCliente = await prisma.clientes.create({
+      data: {
+        telefono,
+        direccion,
+      },
     });
 
-    // Guardar el cliente en la base de datos
-    const clienteGuardado = await clienteRepo.save(cliente);
-
     return NextResponse.json(
-      { success: true, data: clienteGuardado },
+      { success: true, data: nuevoCliente },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/clientes:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando cliente", error },
+      { success: false, message: "Error creando cliente" },
       { status: 500 }
     );
   }
