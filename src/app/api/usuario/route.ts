@@ -1,24 +1,12 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Usuario } from "@/entities/Usuario";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener todos los usuarios (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
-    const usuarios = await usuarioRepo.find();
+    const usuarios = await prisma.usuarios.findMany();
 
     if (!usuarios.length) {
       return NextResponse.json(
@@ -27,10 +15,14 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ success: true, data: usuarios });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error obteniendo usuarios", error },
+      { success: true, data: usuarios },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en GET /api/usuario:", error);
+    return NextResponse.json(
+      { success: false, message: "Error obteniendo usuarios" },
       { status: 500 }
     );
   }
@@ -41,42 +33,42 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
-
-    const { nombre, email, direccion, telefono, imagenUrl, password, activo } =
+    const { nombre, nombre_usuario, correo_electronico, pin, password, rol } =
       await req.json();
 
-    // Verificar si el email ya existe
-    const existingUser = await usuarioRepo.findOne({ where: { email } });
-    if (existingUser) {
+    if (
+      !nombre ||
+      !nombre_usuario ||
+      !correo_electronico ||
+      !pin ||
+      !password ||
+      !rol
+    ) {
       return NextResponse.json(
-        { success: false, message: "El correo ya está registrado" },
+        { success: false, message: "Todos los campos son obligatorios" },
         { status: 400 }
       );
     }
 
-    // Crear un nuevo usuario
-    const usuario = usuarioRepo.create({
-      nombre,
-      email,
-      direccion,
-      telefono,
-      imagenUrl,
-      password,
-      activo,
+    const nuevoUsuario = await prisma.usuarios.create({
+      data: {
+        nombre,
+        nombre_usuario,
+        correo_electronico,
+        pin,
+        password,
+        rol,
+      },
     });
 
-    // Guardar el usuario en la base de datos
-    const usuarioGuardado = await usuarioRepo.save(usuario);
-
     return NextResponse.json(
-      { success: true, data: usuarioGuardado },
+      { success: true, data: nuevoUsuario },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/usuario:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando usuario", error },
+      { success: false, message: "Error creando usuario" },
       { status: 500 }
     );
   }

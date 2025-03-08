@@ -1,36 +1,24 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Usuario } from "@/entities/Usuario";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener un usuario por ID (GET)
  */
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
+    const id_usuario = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const usuarioId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(usuarioId)) {
+    if (isNaN(id_usuario)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const usuario = await usuarioRepo.findOneBy({ id: usuarioId });
+    const usuario = await prisma.usuarios.findUnique({ where: { id_usuario } });
 
     if (!usuario) {
       return NextResponse.json(
@@ -39,62 +27,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: usuario });
+    return NextResponse.json({ success: true, data: usuario }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/usuario/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo usuario", error },
+      { success: false, message: "Error obteniendo usuario" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar un usuario por ID (PUT)
+ * 📌 Actualizar un usuario por ID (PATCH)
  */
-export async function PUT(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
+    const id_usuario = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const usuarioId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(usuarioId)) {
+    if (isNaN(id_usuario)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const usuario = await usuarioRepo.findOneBy({ id: usuarioId });
-
-    if (!usuario) {
-      return NextResponse.json(
-        { success: false, message: "Usuario no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    const { nombre, email, direccion, telefono, imagenUrl, activo, password } =
-      await req.json();
-
-    usuarioRepo.merge(usuario, {
-      nombre,
-      email,
-      direccion,
-      telefono,
-      imagenUrl,
-      activo,
-      password,
+    const body = await req.json();
+    const usuarioActualizado = await prisma.usuarios.update({
+      where: { id_usuario },
+      data: body,
     });
 
-    const usuarioActualizado = await usuarioRepo.save(usuario);
-
-    return NextResponse.json({ success: true, data: usuarioActualizado });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando usuario", error },
+      { success: true, data: usuarioActualizado },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/usuario/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando usuario" },
       { status: 500 }
     );
   }
@@ -103,40 +76,30 @@ export async function PUT(req: NextRequest) {
 /**
  * 📌 Eliminar un usuario por ID (DELETE)
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
+    const id_usuario = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const usuarioId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(usuarioId)) {
+    if (isNaN(id_usuario)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const usuario = await usuarioRepo.findOneBy({ id: usuarioId });
+    await prisma.usuarios.delete({ where: { id_usuario } });
 
-    if (!usuario) {
-      return NextResponse.json(
-        { success: false, message: "Usuario no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    await usuarioRepo.remove(usuario);
-
-    return NextResponse.json({
-      success: true,
-      message: "Usuario eliminado correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando usuario", error },
+      { success: true, message: "Usuario eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/usuario/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando usuario" },
       { status: 500 }
     );
   }
