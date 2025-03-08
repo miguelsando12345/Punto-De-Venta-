@@ -1,36 +1,30 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Pagos } from "@/entities/Pagos";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener un pago por ID (GET)
  */
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const pagosRepo = AppDataSource.getRepository(Pagos);
+    const id_pago = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const pagoId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(pagoId)) {
+    if (isNaN(id_pago)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const pago = await pagosRepo.findOneBy({ id: pagoId });
+    const pago = await prisma.pagos.findUnique({
+      where: { id_pago },
+      include: {
+        comanda: true,
+        metodo_pago: true,
+      },
+    });
 
     if (!pago) {
       return NextResponse.json(
@@ -39,58 +33,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: pago });
+    return NextResponse.json({ success: true, data: pago }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/pagos/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo pago", error },
+      { success: false, message: "Error obteniendo pago" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar un pago por ID (PUT)
+ * 📌 Actualizar un pago por ID (PATCH)
  */
-export async function PUT(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const pagosRepo = AppDataSource.getRepository(Pagos);
+    const id_pago = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const pagoId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(pagoId)) {
+    if (isNaN(id_pago)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const pago = await pagosRepo.findOneBy({ id: pagoId });
-
-    if (!pago) {
-      return NextResponse.json(
-        { success: false, message: "Pago no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    const { monto, metodoPago, descripcion, procesado } = await req.json();
-
-    pagosRepo.merge(pago, {
-      monto,
-      metodoPago,
-      descripcion,
-      procesado,
+    const body = await req.json();
+    const pagoActualizado = await prisma.pagos.update({
+      where: { id_pago },
+      data: body,
     });
 
-    const pagoActualizado = await pagosRepo.save(pago);
-
-    return NextResponse.json({ success: true, data: pagoActualizado });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando pago", error },
+      { success: true, data: pagoActualizado },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/pagos/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando pago" },
       { status: 500 }
     );
   }
@@ -99,40 +82,30 @@ export async function PUT(req: NextRequest) {
 /**
  * 📌 Eliminar un pago por ID (DELETE)
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const pagosRepo = AppDataSource.getRepository(Pagos);
+    const id_pago = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const pagoId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(pagoId)) {
+    if (isNaN(id_pago)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const pago = await pagosRepo.findOneBy({ id: pagoId });
+    await prisma.pagos.delete({ where: { id_pago } });
 
-    if (!pago) {
-      return NextResponse.json(
-        { success: false, message: "Pago no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    await pagosRepo.remove(pago);
-
-    return NextResponse.json({
-      success: true,
-      message: "Pago eliminado correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando pago", error },
+      { success: true, message: "Pago eliminado correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/pagos/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando pago" },
       { status: 500 }
     );
   }

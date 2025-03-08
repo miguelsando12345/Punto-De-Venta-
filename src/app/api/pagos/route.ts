@@ -1,24 +1,17 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Pagos } from "@/entities/Pagos";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener todos los pagos (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const pagosRepo = AppDataSource.getRepository(Pagos);
-    const pagos = await pagosRepo.find();
+    const pagos = await prisma.pagos.findMany({
+      include: {
+        comanda: true,
+        metodo_pago: true,
+      },
+    });
 
     if (!pagos.length) {
       return NextResponse.json(
@@ -27,43 +20,49 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ success: true, data: pagos });
+    return NextResponse.json({ success: true, data: pagos }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/pagos:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo pagos", error },
+      { success: false, message: "Error obteniendo pagos" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Crear un nuevo pago (POST)
+ * 📌 Registrar un nuevo pago (POST)
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const pagosRepo = AppDataSource.getRepository(Pagos);
+    const { id_comanda, id_metodo_pago, fecha_hora } = await req.json();
 
-    const { usuarioId, monto, metodoPago, descripcion } = await req.json();
+    if (!id_comanda || !id_metodo_pago) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Comanda y método de pago son obligatorios",
+        },
+        { status: 400 }
+      );
+    }
 
-    // Crear un nuevo pago
-    const pago = pagosRepo.create({
-      usuarioId,
-      monto,
-      metodoPago,
-      descripcion,
+    const nuevoPago = await prisma.pagos.create({
+      data: {
+        id_comanda,
+        id_metodo_pago,
+        fecha_hora: fecha_hora ? new Date(fecha_hora) : new Date(),
+      },
     });
 
-    // Guardar el pago en la base de datos
-    const pagoGuardado = await pagosRepo.save(pago);
-
     return NextResponse.json(
-      { success: true, data: pagoGuardado },
+      { success: true, data: nuevoPago },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/pagos:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando pago", error },
+      { success: false, message: "Error registrando pago" },
       { status: 500 }
     );
   }
