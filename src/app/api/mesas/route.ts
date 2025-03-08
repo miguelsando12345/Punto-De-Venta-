@@ -1,24 +1,16 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Mesas } from "@/entities/Mesas";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener todas las mesas (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const mesasRepo = AppDataSource.getRepository(Mesas);
-    const mesas = await mesasRepo.find();
+    const mesas = await prisma.mesas.findMany({
+      include: {
+        comandas: true,
+      },
+    });
 
     if (!mesas.length) {
       return NextResponse.json(
@@ -27,10 +19,11 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ success: true, data: mesas });
+    return NextResponse.json({ success: true, data: mesas }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/mesas:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo mesas", error },
+      { success: false, message: "Error obteniendo mesas" },
       { status: 500 }
     );
   }
@@ -41,38 +34,31 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const mesasRepo = AppDataSource.getRepository(Mesas);
+    const { numero, capacidad, estado } = await req.json();
 
-    const { nombre, descripcion, capacidad, disponible } = await req.json();
-
-    // Verificar si el nombre de la mesa ya existe
-    const existingMesa = await mesasRepo.findOne({ where: { nombre } });
-    if (existingMesa) {
+    if (!numero || !capacidad || !estado) {
       return NextResponse.json(
-        { success: false, message: "La mesa ya está registrada" },
+        { success: false, message: "Todos los campos son obligatorios" },
         { status: 400 }
       );
     }
 
-    // Crear una nueva mesa
-    const mesa = mesasRepo.create({
-      nombre,
-      descripcion,
-      capacidad,
-      disponible,
+    const nuevaMesa = await prisma.mesas.create({
+      data: {
+        numero,
+        capacidad,
+        estado,
+      },
     });
 
-    // Guardar la mesa en la base de datos
-    const mesaGuardada = await mesasRepo.save(mesa);
-
     return NextResponse.json(
-      { success: true, data: mesaGuardada },
+      { success: true, data: nuevaMesa },
       { status: 201 }
     );
   } catch (error) {
+    console.error("Error en POST /api/mesas:", error);
     return NextResponse.json(
-      { success: false, message: "Error creando mesa", error },
+      { success: false, message: "Error creando mesa" },
       { status: 500 }
     );
   }

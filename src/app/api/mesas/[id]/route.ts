@@ -1,36 +1,29 @@
-import { AppDataSource } from "@/lib/data-source";
-import { Mesas } from "@/entities/Mesas";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * Inicializa la base de datos si no está inicializada
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener una mesa por ID (GET)
  */
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const mesasRepo = AppDataSource.getRepository(Mesas);
+    const id_mesa = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const mesaId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(mesaId)) {
+    if (isNaN(id_mesa)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const mesa = await mesasRepo.findOneBy({ id: mesaId });
+    const mesa = await prisma.mesas.findUnique({
+      where: { id_mesa },
+      include: {
+        comandas: true,
+      },
+    });
 
     if (!mesa) {
       return NextResponse.json(
@@ -39,58 +32,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, data: mesa });
+    return NextResponse.json({ success: true, data: mesa }, { status: 200 });
   } catch (error) {
+    console.error("Error en GET /api/mesas/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error obteniendo mesa", error },
+      { success: false, message: "Error obteniendo mesa" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar una mesa por ID (PUT)
+ * 📌 Actualizar una mesa por ID (PATCH)
  */
-export async function PUT(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const mesasRepo = AppDataSource.getRepository(Mesas);
+    const id_mesa = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const mesaId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(mesaId)) {
+    if (isNaN(id_mesa)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const mesa = await mesasRepo.findOneBy({ id: mesaId });
-
-    if (!mesa) {
-      return NextResponse.json(
-        { success: false, message: "Mesa no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    const { nombre, descripcion, capacidad, disponible } = await req.json();
-
-    mesasRepo.merge(mesa, {
-      nombre,
-      descripcion,
-      capacidad,
-      disponible,
+    const body = await req.json();
+    const mesaActualizada = await prisma.mesas.update({
+      where: { id_mesa },
+      data: body,
     });
 
-    const mesaActualizada = await mesasRepo.save(mesa);
-
-    return NextResponse.json({ success: true, data: mesaActualizada });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando mesa", error },
+      { success: true, data: mesaActualizada },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/mesas/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando mesa" },
       { status: 500 }
     );
   }
@@ -99,40 +81,30 @@ export async function PUT(req: NextRequest) {
 /**
  * 📌 Eliminar una mesa por ID (DELETE)
  */
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    await ensureDBConnection();
-    const mesasRepo = AppDataSource.getRepository(Mesas);
+    const id_mesa = parseInt(params.id);
 
-    // Obtener ID desde la URL
-    const urlParts = req.nextUrl.pathname.split("/");
-    const mesaId = Number(urlParts[urlParts.length - 1]);
-
-    if (isNaN(mesaId)) {
+    if (isNaN(id_mesa)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
         { status: 400 }
       );
     }
 
-    const mesa = await mesasRepo.findOneBy({ id: mesaId });
+    await prisma.mesas.delete({ where: { id_mesa } });
 
-    if (!mesa) {
-      return NextResponse.json(
-        { success: false, message: "Mesa no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    await mesasRepo.remove(mesa);
-
-    return NextResponse.json({
-      success: true,
-      message: "Mesa eliminada correctamente",
-    });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error eliminando mesa", error },
+      { success: true, message: "Mesa eliminada correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/mesas/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando mesa" },
       { status: 500 }
     );
   }
