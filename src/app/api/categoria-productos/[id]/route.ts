@@ -1,28 +1,26 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { AppDataSource } from "@/lib/data-source";
-import { CategoriaProductos } from "@/entities/CategoriaProductos";
 
 /**
- * 📌 Asegura la conexión a la base de datos
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
-
-/**
- * 📌 Obtener una categoría por ID (GET)
+ * 📌 Obtener una categoría de producto por ID (GET)
  */
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const categoriaRepo = AppDataSource.getRepository(CategoriaProductos);
-    const categoria = await categoriaRepo.findOne({
-      where: { id: Number(params.id) },
+    const id_categoria = parseInt(params.id);
+
+    if (isNaN(id_categoria)) {
+      return NextResponse.json(
+        { success: false, message: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    const categoria = await prisma.categoriaProductos.findUnique({
+      where: { id_categoria },
+      include: { productos: true }, // Incluye los productos asociados con la categoría
     });
 
     if (!categoria) {
@@ -32,83 +30,104 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: categoria });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error obteniendo categoría", error },
+      { success: true, data: categoria },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en GET /api/categoria-productos/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error obteniendo categoría de producto" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Actualizar una categoría por ID (PUT)
+ * 📌 Actualizar una categoría de producto por ID (PATCH)
  */
-export async function PUT(
+export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const categoriaRepo = AppDataSource.getRepository(CategoriaProductos);
-    const categoria = await categoriaRepo.findOne({
-      where: { id: Number(params.id) },
-    });
+    const id_categoria = parseInt(params.id);
 
-    if (!categoria) {
+    if (isNaN(id_categoria)) {
       return NextResponse.json(
-        { success: false, message: "Categoría no encontrada" },
-        { status: 404 }
+        { success: false, message: "ID inválido" },
+        { status: 400 }
       );
     }
 
-    const { nombre, descripcion, activo } = await req.json();
+    const body = await req.json();
 
-    if (nombre) categoria.nombre = nombre;
-    if (descripcion) categoria.descripcion = descripcion;
-    if (activo !== undefined) categoria.activo = activo;
+    if (!body || Object.keys(body).length === 0) {
+      return NextResponse.json(
+        { success: false, message: "El cuerpo de la solicitud está vacío" },
+        { status: 400 }
+      );
+    }
 
-    const categoriaActualizada = await categoriaRepo.save(categoria);
+    const categoriaActualizada = await prisma.categoriaProductos.update({
+      where: { id_categoria },
+      data: body,
+    });
 
-    return NextResponse.json({ success: true, data: categoriaActualizada });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error actualizando categoría", error },
+      { success: true, data: categoriaActualizada },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en PATCH /api/categoria-productos/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error actualizando categoría de producto" },
       { status: 500 }
     );
   }
 }
 
 /**
- * 📌 Eliminar una categoría por ID (DELETE)
+ * 📌 Eliminar una categoría de producto por ID (DELETE)
  */
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await ensureDBConnection();
-    const categoriaRepo = AppDataSource.getRepository(CategoriaProductos);
-    const categoria = await categoriaRepo.findOne({
-      where: { id: Number(params.id) },
+    const id_categoria = parseInt(params.id);
+
+    if (isNaN(id_categoria)) {
+      return NextResponse.json(
+        { success: false, message: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    // Verificamos si la categoría existe antes de eliminarla
+    const categoriaExistente = await prisma.categoriaProductos.findUnique({
+      where: { id_categoria },
     });
 
-    if (!categoria) {
+    if (!categoriaExistente) {
       return NextResponse.json(
         { success: false, message: "Categoría no encontrada" },
         { status: 404 }
       );
     }
 
-    await categoriaRepo.remove(categoria);
-
-    return NextResponse.json({
-      success: true,
-      message: "Categoría eliminada correctamente",
+    await prisma.categoriaProductos.delete({
+      where: { id_categoria },
     });
-  } catch (error) {
+
     return NextResponse.json(
-      { success: false, message: "Error eliminando categoría", error },
+      { success: true, message: "Categoría eliminada correctamente" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en DELETE /api/categoria-productos/[id]:", error);
+    return NextResponse.json(
+      { success: false, message: "Error eliminando categoría de producto" },
       { status: 500 }
     );
   }

@@ -61,6 +61,14 @@ export async function PATCH(
     }
 
     const body = await req.json();
+
+    if (!body || Object.keys(body).length === 0) {
+      return NextResponse.json(
+        { success: false, message: "El cuerpo de la solicitud está vacío" },
+        { status: 400 }
+      );
+    }
+
     const productoActualizado = await prisma.productos.update({
       where: { id_producto },
       data: body,

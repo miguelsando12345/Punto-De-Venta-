@@ -1,36 +1,33 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { AppDataSource } from "@/lib/data-source";
-import { CategoriaProductos } from "@/entities/CategoriaProductos";
-
-/**
- * 📌 Asegura la conexión a la base de datos
- */
-async function ensureDBConnection() {
-  if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-  }
-}
 
 /**
  * 📌 Obtener todas las categorías de productos (GET)
  */
 export async function GET() {
   try {
-    await ensureDBConnection();
-    const categoriaRepo = AppDataSource.getRepository(CategoriaProductos);
-    const categorias = await categoriaRepo.find();
+    const categorias = await prisma.categoriaProductos.findMany({
+      include: { productos: true }, // Incluye los productos asociados con la categoría
+    });
 
     if (!categorias.length) {
       return NextResponse.json(
-        { success: false, message: "No hay categorías registradas" },
+        {
+          success: false,
+          message: "No hay categorías de productos registradas",
+        },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: categorias });
-  } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Error obteniendo categorías", error },
+      { success: true, data: categorias },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en GET /api/categoria-productos:", error);
+    return NextResponse.json(
+      { success: false, message: "Error obteniendo categorías de productos" },
       { status: 500 }
     );
   }
@@ -41,33 +38,47 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    await ensureDBConnection();
-    const categoriaRepo = AppDataSource.getRepository(CategoriaProductos);
+    const body = await req.json();
 
-    const { nombre, descripcion, activo } = await req.json();
-
-    if (!nombre) {
+    if (!body || typeof body !== "object") {
       return NextResponse.json(
-        { success: false, message: "El nombre es obligatorio" },
+        {
+          success: false,
+          message: "El cuerpo de la solicitud debe ser un objeto válido",
+        },
         { status: 400 }
       );
     }
 
-    const nuevaCategoria = categoriaRepo.create({
-      nombre,
-      descripcion,
-      activo: activo ?? true, // Si no se envía, se asigna `true` por defecto
+    const { nombre } = body;
+
+    if (!nombre) {
+      return NextResponse.json(
+        { success: false, message: "El nombre de la categoría es obligatorio" },
+        { status: 400 }
+      );
+    }
+
+    const nuevaCategoria = await prisma.categoriaProductos.create({
+      data: {
+        nombre,
+      },
     });
 
-    const categoriaGuardada = await categoriaRepo.save(nuevaCategoria);
-
     return NextResponse.json(
-      { success: true, data: categoriaGuardada },
+      { success: true, data: nuevaCategoria },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error("Error en POST /api/categoria-productos:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Error desconocido";
     return NextResponse.json(
-      { success: false, message: "Error creando categoría", error },
+      {
+        success: false,
+        message: "Error creando categoría de producto",
+        error: errorMessage,
+      },
       { status: 500 }
     );
   }

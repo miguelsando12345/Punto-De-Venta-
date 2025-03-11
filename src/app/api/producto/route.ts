@@ -35,26 +35,41 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { nombre, descripcion, precio, categoria_id, disponible } =
-      await req.json();
+    // Verificamos si el cuerpo de la solicitud es null o no es un objeto
+    const body = await req.json();
 
-    if (!nombre || !precio || !categoria_id) {
+    // Verificación de que se recibió un objeto válido
+    if (!body || typeof body !== "object") {
       return NextResponse.json(
         {
           success: false,
-          message: "Nombre, precio y categoría son obligatorios",
+          message: "El cuerpo de la solicitud debe ser un objeto válido.",
         },
         { status: 400 }
       );
     }
 
+    const { nombre, descripcion, precio, categoria_id, disponible } = body;
+
+    // Validación de campos obligatorios
+    if (!nombre || !precio || !categoria_id) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Nombre, precio y categoría son obligatorios.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Crear el nuevo producto en la base de datos
     const nuevoProducto = await prisma.productos.create({
       data: {
         nombre,
         descripcion,
         precio,
         categoria_id,
-        disponible: disponible ?? true, // Si no se envía, por defecto es true
+        disponible: disponible ?? true, // Si no se especifica, por defecto es 'true'
       },
     });
 
@@ -62,10 +77,20 @@ export async function POST(req: NextRequest) {
       { success: true, data: nuevoProducto },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
+    // Manejo de errores con mensajes más específicos
     console.error("Error en POST /api/producto:", error);
+
+    // Si el error es del tipo Error, accedemos a su mensaje
+    const errorMessage =
+      error instanceof Error ? error.message : "Error desconocido";
+
     return NextResponse.json(
-      { success: false, message: "Error creando producto" },
+      {
+        success: false,
+        message: "Error creando producto",
+        error: errorMessage,
+      },
       { status: 500 }
     );
   }
