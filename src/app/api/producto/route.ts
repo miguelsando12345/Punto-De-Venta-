@@ -7,7 +7,12 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET() {
   try {
     const productos = await prisma.productos.findMany({
-      include: { categoria: true }, // Incluye la información de la categoría del producto
+      include: {
+        categoria: true, // Incluye la información de la categoría del producto
+        productos_insumo: {
+          include: { insumo: true }, // Incluye los insumos necesarios para el producto
+        },
+      },
     });
 
     if (!productos.length) {
@@ -35,23 +40,16 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    // Verificamos si el cuerpo de la solicitud es null o no es un objeto
-    const body = await req.json();
+    const {
+      nombre,
+      descripcion,
+      precio,
+      categoria_id,
+      disponible,
+      productos_insumo,
+    } = await req.json();
 
-    // Verificación de que se recibió un objeto válido
-    if (!body || typeof body !== "object") {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "El cuerpo de la solicitud debe ser un objeto válido.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const { nombre, descripcion, precio, categoria_id, disponible } = body;
-
-    // Validación de campos obligatorios
+    // Validación de los campos
     if (!nombre || !precio || !categoria_id) {
       return NextResponse.json(
         {
@@ -62,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Crear el nuevo producto en la base de datos
+    // Crear el nuevo producto
     const nuevoProducto = await prisma.productos.create({
       data: {
         nombre,
@@ -70,6 +68,14 @@ export async function POST(req: NextRequest) {
         precio,
         categoria_id,
         disponible: disponible ?? true, // Si no se especifica, por defecto es 'true'
+        productos_insumo: {
+          create: productos_insumo?.map(
+            (insumo: { id_insumo: number; cantidad_requerida: number }) => ({
+              id_insumo: insumo.id_insumo,
+              cantidad_requerida: insumo.cantidad_requerida,
+            })
+          ),
+        },
       },
     });
 
@@ -77,20 +83,10 @@ export async function POST(req: NextRequest) {
       { success: true, data: nuevoProducto },
       { status: 201 }
     );
-  } catch (error: unknown) {
-    // Manejo de errores con mensajes más específicos
+  } catch (error) {
     console.error("Error en POST /api/producto:", error);
-
-    // Si el error es del tipo Error, accedemos a su mensaje
-    const errorMessage =
-      error instanceof Error ? error.message : "Error desconocido";
-
     return NextResponse.json(
-      {
-        success: false,
-        message: "Error creando producto",
-        error: errorMessage,
-      },
+      { success: false, message: "Error creando producto" },
       { status: 500 }
     );
   }
