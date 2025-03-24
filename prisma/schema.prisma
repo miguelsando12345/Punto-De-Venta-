@@ -165,3 +165,11 @@ model ProductosInsumo {
 
   @@id([id_producto, id_insumo])
 }
+
+model User {
+  id        String  @id @default(uuid())
+  email     String  @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+}
