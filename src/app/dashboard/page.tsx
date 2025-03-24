@@ -1,10 +1,9 @@
-import AuthForm from "@/components/AuthForm";
 import React from "react";
 
 const page = () => {
   return (
     <div>
-      <AuthForm />
+      <h1>Dashboard</h1>
     </div>
   );
 };
