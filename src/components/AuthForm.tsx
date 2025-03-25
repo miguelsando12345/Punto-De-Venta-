@@ -3,49 +3,68 @@ import { useState } from "react";
 import useAuthStore from "@/stores/useAuthStore";
 
 export default function AuthForm() {
-  const [email, setEmail] = useState("");
+  const [correoElectronico, setCorreoElectronico] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const login = useAuthStore((state) => state.login);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-      headers: { "Content-Type": "application/json" },
-    });
+    setError(null); // Reinicia el error antes de cada intento
 
-    const data = await res.json();
-    console.log(data);
-    if (res.ok) login(data.user, data.token);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          correo_electronico: correoElectronico,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error desconocido al iniciar sesión");
+      }
+
+      login(data.user, data.token);
+      console.log("Inicio de sesión exitoso:", data);
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Error en el login:", err);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-<<<<<<< HEAD
-      <input type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} className="border p-2" />
-      <input type="password" placeholder="Contraseña" onChange={(e) => setPassword(e.target.value)} className="border p-2" />
-      <button type="submit" className="bg-blue-500 text-white p-2">Iniciar sesión</button>
-    </form>
-  );
-}
-=======
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-4 p-4 bg-gray-800 rounded-lg shadow-md w-80"
+    >
+      <h2 className="text-white text-xl font-semibold">Iniciar sesión</h2>
+
+      {error && <p className="text-red-500">{error}</p>}
+
       <input
         type="email"
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-        className="border p-2"
+        placeholder="Correo electrónico"
+        value={correoElectronico}
+        onChange={(e) => setCorreoElectronico(e.target.value)}
+        className="border p-2 rounded bg-gray-700 text-white"
       />
       <input
         type="password"
         placeholder="Contraseña"
+        value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="border p-2"
+        className="border p-2 rounded bg-gray-700 text-white"
       />
-      <button type="submit" className="bg-blue-500 text-white p-2">
+      <button
+        type="submit"
+        className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
+      >
         Iniciar sesión
       </button>
     </form>
   );
 }
->>>>>>> 9b7247a19df9d81c6c2911b354a89e8dd5895104

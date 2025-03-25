@@ -9,35 +9,40 @@ export async function POST(req: Request) {
   try {
     const { correo_electronico, password } = await req.json();
 
-    // Buscar el usuario por correo electrónico
-    const user = await prisma.usuarios.findUnique({
+    // Buscar usuario por correo
+    const usuario = await prisma.usuarios.findUnique({
       where: { correo_electronico },
     });
-    if (!user) {
+
+    if (!usuario) {
       return NextResponse.json(
         { error: "Usuario no encontrado" },
         { status: 404 }
       );
     }
 
-    // Comparar la contraseña
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
+    // Comparar la contraseña con la almacenada en la BD
+    const contraseñaValida = await bcrypt.compare(password, usuario.password);
+    if (!contraseñaValida) {
       return NextResponse.json(
         { error: "Contraseña incorrecta" },
         { status: 401 }
       );
     }
 
-    // Crear token JWT
+    // Generar token JWT
     const token = jwt.sign(
-      { id: user.id_usuario, correo_electronico: user.correo_electronico },
+      {
+        id: usuario.id_usuario,
+        correo_electronico: usuario.correo_electronico,
+        rol: usuario.rol,
+      },
       SECRET,
       { expiresIn: "1h" }
     );
 
     return NextResponse.json(
-      { message: "Login exitoso", token, user },
+      { message: "Login exitoso", token, user: usuario },
       { status: 200 }
     );
   } catch (error) {

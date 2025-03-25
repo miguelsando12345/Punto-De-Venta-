@@ -1,12 +1,10 @@
+"use client";
 import AuthForm from "@/components/AuthForm";
-import React from "react";
 
-const page = () => {
+export default function LoginPage() {
   return (
-    <div>
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
       <AuthForm />
     </div>
   );
-};
-
-export default page;
+}

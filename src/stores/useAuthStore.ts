@@ -20,8 +20,4 @@ const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-<<<<<<< HEAD
 export default useAuthStore;
-=======
-export default useAuthStore;
->>>>>>> 9b7247a19df9d81c6c2911b354a89e8dd5895104
