@@ -9,40 +9,46 @@ export async function POST(req: Request) {
   try {
     const { correo_electronico, password } = await req.json();
 
-    // Buscar usuario por correo
-    const usuario = await prisma.usuarios.findUnique({
-      where: { correo_electronico },
-    });
-
-    if (!usuario) {
+    if (!correo_electronico || !password) {
       return NextResponse.json(
-        { error: "Usuario no encontrado" },
-        { status: 404 }
+        { error: "Correo y contraseña son requeridos" },
+        { status: 400 }
       );
     }
 
-    // Comparar la contraseña con la almacenada en la BD
-    const contraseñaValida = await bcrypt.compare(password, usuario.password);
-    if (!contraseñaValida) {
+    // Buscar usuario en la base de datos
+    const user = await prisma.usuarios.findUnique({
+      where: { correo_electronico },
+    });
+
+    if (!user) {
       return NextResponse.json(
-        { error: "Contraseña incorrecta" },
+        { error: "Credenciales inválidas" },
         { status: 401 }
       );
     }
 
-    // Generar token JWT
+    // Comparar contraseña
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return NextResponse.json(
+        { error: "Credenciales inválidas" },
+        { status: 401 }
+      );
+    }
+
     const token = jwt.sign(
       {
-        id: usuario.id_usuario,
-        correo_electronico: usuario.correo_electronico,
-        rol: usuario.rol,
+        id_usuario: user.id_usuario,
+        correo_electronico: user.correo_electronico,
+        rol: user.rol,
       },
       SECRET,
       { expiresIn: "1h" }
     );
 
     return NextResponse.json(
-      { message: "Login exitoso", token, user: usuario },
+      { message: "Inicio de sesión exitoso", user, token },
       { status: 200 }
     );
   } catch (error) {

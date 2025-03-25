@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "@/lib/prisma"; // Asegúrate de que prisma esté correctamente configurado
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET!;
+const SECRET = process.env.JWT_SECRET!; // Asegúrate de que esta variable esté definida en tu archivo .env
 
 export async function POST(req: Request) {
   try {
@@ -11,28 +11,33 @@ export async function POST(req: Request) {
       await req.json();
 
     // Verifica que el rol sea válido
-    const rolesValidos = ["Cajero", "Mesero", "Administrador"];
-    if (!rolesValidos.includes(rol)) {
+    const rolValido = ["Cajero", "Mesero", "Administrador"];
+    if (!rolValido.includes(rol)) {
       return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
     }
 
-    // Verificar si el usuario ya existe
-    const usuarioExistente = await prisma.usuarios.findUnique({
-      where: { correo_electronico },
+    // Verifica si el correo electrónico o el nombre de usuario ya están registrados
+    const existingUser = await prisma.usuarios.findFirst({
+      where: {
+        OR: [{ correo_electronico }, { nombre_usuario }],
+      },
     });
 
-    if (usuarioExistente) {
+    if (existingUser) {
       return NextResponse.json(
-        { error: "El correo ya está registrado" },
+        {
+          error:
+            "El correo electrónico o el nombre de usuario ya están registrados",
+        },
         { status: 400 }
       );
     }
 
-    // Hashear la contraseña
+    // Hashea la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear usuario
-    const nuevoUsuario = await prisma.usuarios.create({
+    // Crea un nuevo usuario en la base de datos
+    const newUser = await prisma.usuarios.create({
       data: {
         correo_electronico,
         password: hashedPassword,
@@ -43,19 +48,19 @@ export async function POST(req: Request) {
       },
     });
 
-    // Crear token JWT
+    // Genera un token JWT
     const token = jwt.sign(
       {
-        id: nuevoUsuario.id_usuario,
-        correo_electronico: nuevoUsuario.correo_electronico,
-        rol: nuevoUsuario.rol,
+        id: newUser.id_usuario,
+        correo_electronico: newUser.correo_electronico,
+        rol: newUser.rol,
       },
       SECRET,
       { expiresIn: "1h" }
     );
 
     return NextResponse.json(
-      { message: "Usuario creado exitosamente", user: nuevoUsuario, token },
+      { message: "Usuario creado exitosamente", user: newUser, token },
       { status: 201 }
     );
   } catch (error) {
