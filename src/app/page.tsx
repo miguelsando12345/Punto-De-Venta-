@@ -14,7 +14,7 @@ export default function Home() {
       {/* Fondo gris oscuro para mejorar la visibilidad */}
       <div className="bg-gray-900 bg-opacity-90 p-12 rounded-2xl shadow-2xl text-center">
         <h1 className="text-5xl font-bold text-white tracking-wide mb-10 drop-shadow-lg">
-          Restaurante POSs
+          Restaurante POS
         </h1>
 
         {/* Botones centrados */}
