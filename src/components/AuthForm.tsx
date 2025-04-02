@@ -34,11 +34,14 @@ export default function AuthForm() {
 
       // Redirigir según el rol
       if (data.user.rol === "Administrador") {
-        router.push("/administracion");
+        // El administrador puede acceder a todas las rutas
+        const targetPath =
+          localStorage.getItem("redirectPath") || "/administracion"; // Se redirige a administración por defecto
+        router.push(targetPath);
       } else if (data.user.rol === "Cajero") {
-        router.push("/caja");
+        router.push("/caja"); // Solo acceso a caja
       } else if (data.user.rol === "Mesero") {
-        router.push("/punto-de-venta");
+        router.push("/punto-de-venta"); // Solo acceso a punto de venta
       } else {
         throw new Error("Rol de usuario no reconocido");
       }
