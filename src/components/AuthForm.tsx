@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
 import useAuthStore from "@/stores/useAuthStore";
+import { useRouter } from "next/navigation"; // Necesitarás este hook para redirigir
 
 export default function AuthForm() {
   const [correoElectronico, setCorreoElectronico] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const login = useAuthStore((state) => state.login);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +30,18 @@ export default function AuthForm() {
         throw new Error(data.error || "Error desconocido al iniciar sesión");
       }
 
-      login(data.user, data.token);
-      console.log("Inicio de sesión exitoso:", data);
+      login(data.user, data.token); // Llama al store para guardar el usuario y el token
+
+      // Redirigir según el rol
+      if (data.user.rol === "Administrador") {
+        router.push("/administracion");
+      } else if (data.user.rol === "Cajero") {
+        router.push("/caja");
+      } else if (data.user.rol === "Mesero") {
+        router.push("/punto-de-venta");
+      } else {
+        throw new Error("Rol de usuario no reconocido");
+      }
     } catch (err: any) {
       setError(err.message);
       console.error("Error en el login:", err);

@@ -6,7 +6,12 @@ export default function Home() {
   const router = useRouter();
 
   const handleNavigate = (path: string) => {
-    router.push(path);
+    // Redirigir a la página de login primero
+    router.push("/login");
+
+    // Una vez que el usuario se haya autenticado en la página de login, redirigir a la página deseada.
+    // Podrías manejar esto mediante un estado de autenticación o alguna lógica que detecte el login exitoso.
+    // Por ejemplo, puedes almacenar la página de destino en un estado global o localStorage para redirigir después.
   };
 
   return (
