@@ -1,9 +1,15 @@
 import { create } from "zustand";
 
+interface User {
+  id: number;
+  nombre: string;
+  rol: "mesero" | "admin" | "cajero"; // Definir roles
+}
+
 interface AuthState {
-  user: any | null;
+  user: User | null;
   token: string | null;
-  login: (user: any, token: string) => void;
+  login: (user: User, token: string) => void;
   logout: () => void;
 }
 

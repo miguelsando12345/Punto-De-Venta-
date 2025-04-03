@@ -6,11 +6,17 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params?: { id?: string } }
 ) {
   try {
-    const id_mesa = parseInt(params.id);
+    if (!params?.id) {
+      return NextResponse.json(
+        { success: false, message: "ID no proporcionado" },
+        { status: 400 }
+      );
+    }
 
+    const id_mesa = parseInt(params.id);
     if (isNaN(id_mesa)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
@@ -20,9 +26,7 @@ export async function GET(
 
     const mesa = await prisma.mesas.findUnique({
       where: { id_mesa },
-      include: {
-        comandas: true,
-      },
+      include: { comandas: true },
     });
 
     if (!mesa) {
@@ -47,11 +51,17 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params?: { id?: string } }
 ) {
   try {
-    const id_mesa = parseInt(params.id);
+    if (!params?.id) {
+      return NextResponse.json(
+        { success: false, message: "ID no proporcionado" },
+        { status: 400 }
+      );
+    }
 
+    const id_mesa = parseInt(params.id);
     if (isNaN(id_mesa)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },
@@ -60,6 +70,13 @@ export async function PATCH(
     }
 
     const body = await req.json();
+    if (!body || Object.keys(body).length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Datos de actualización no proporcionados" },
+        { status: 400 }
+      );
+    }
+
     const mesaActualizada = await prisma.mesas.update({
       where: { id_mesa },
       data: body,
@@ -72,7 +89,7 @@ export async function PATCH(
   } catch (error) {
     console.error("Error en PATCH /api/mesas/[id]:", error);
     return NextResponse.json(
-      { success: false, message: "Error actualizando mesa" },
+      { success: false, message: "Error actualizando la mesa" },
       { status: 500 }
     );
   }
@@ -83,11 +100,17 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params?: { id?: string } }
 ) {
   try {
-    const id_mesa = parseInt(params.id);
+    if (!params?.id) {
+      return NextResponse.json(
+        { success: false, message: "ID no proporcionado" },
+        { status: 400 }
+      );
+    }
 
+    const id_mesa = parseInt(params.id);
     if (isNaN(id_mesa)) {
       return NextResponse.json(
         { success: false, message: "ID inválido" },

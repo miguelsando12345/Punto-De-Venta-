@@ -12,10 +12,11 @@ export interface CategoriaProducto {
   productos: Producto[]; // Relación con los productos de la categoría
 }
 export interface Mesa {
-  id_mesa: number;
+  id_mesa: number; // Add a unique identifier
   numero: number;
   capacidad: number;
-  estado: string;
+  estado: "Libre" | "Ocupada";
+  numComensales: number;
 }
 export interface DetalleComanda {
   id_detalle: number;
