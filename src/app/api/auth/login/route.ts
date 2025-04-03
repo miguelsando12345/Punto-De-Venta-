@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Buscar usuario en la base de datos
+    // Buscar usuario en la base de datos usando el modelo Usuarios de tu schema
     const user = await prisma.usuarios.findUnique({
       where: { correo_electronico },
     });
@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Crear token JWT con datos del usuario
     const token = jwt.sign(
       {
         id_usuario: user.id_usuario,
@@ -47,10 +48,20 @@ export async function POST(req: Request) {
       { expiresIn: "1h" }
     );
 
-    return NextResponse.json(
-      { message: "Inicio de sesión exitoso", user, token },
-      { status: 200 }
-    );
+    // Configuramos la respuesta y seteamos la cookie "token"
+    const response = NextResponse.json({
+      message: "Inicio de sesión exitoso",
+      user,
+    });
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      maxAge: 60 * 60, // 1 hora en segundos
+      path: "/",
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return response;
   } catch (error) {
     console.error("Error en el servidor:", error);
     return NextResponse.json(

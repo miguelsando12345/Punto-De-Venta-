@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import useAuthStore from "@/stores/useAuthStore";
-import { useRouter } from "next/navigation"; // Necesitarás este hook para redirigir
+import { useRouter } from "next/navigation";
 
 export default function AuthForm() {
   const [correoElectronico, setCorreoElectronico] = useState("");
@@ -12,7 +12,7 @@ export default function AuthForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Reinicia el error antes de cada intento
+    setError(null);
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -30,24 +30,29 @@ export default function AuthForm() {
         throw new Error(data.error || "Error desconocido al iniciar sesión");
       }
 
-      login(data.user, data.token); // Llama al store para guardar el usuario y el token
+      // Guarda el usuario en el store; el token ya se almacena en la cookie HttpOnly
+      login(data.user);
 
-      // Redirigir según el rol
+      // Redirige según el rol del usuario
       if (data.user.rol === "Administrador") {
-        // El administrador puede acceder a todas las rutas
         const targetPath =
-          localStorage.getItem("redirectPath") || "/administracion"; // Se redirige a administración por defecto
+          localStorage.getItem("redirectPath") || "/administracion";
         router.push(targetPath);
       } else if (data.user.rol === "Cajero") {
-        router.push("/caja"); // Solo acceso a caja
+        router.push("/caja");
       } else if (data.user.rol === "Mesero") {
-        router.push("/punto-de-venta"); // Solo acceso a punto de venta
+        router.push("/punto-de-venta");
       } else {
         throw new Error("Rol de usuario no reconocido");
       }
-    } catch (err: any) {
-      setError(err.message);
-      console.error("Error en el login:", err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+        console.error("Error en el login:", err);
+      } else {
+        setError("Error desconocido");
+        console.error("Error en el login:", err);
+      }
     }
   };
 

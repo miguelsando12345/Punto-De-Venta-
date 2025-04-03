@@ -9,7 +9,7 @@ export default function PuntoDeVenta() {
 
   useEffect(() => {
     if (user) {
-      setNombreMesero(user.nombre); // Establecemos el nombre del mesero
+      setNombreMesero(user.name); // Establecemos el nombre del mesero
     }
   }, [user]);
 
