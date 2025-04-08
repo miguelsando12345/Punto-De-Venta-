@@ -1,9 +1,9 @@
 export interface Producto {
-  id: number;
+  id_producto: number;
   nombre: string;
-  descripcion?: string;
   precio: number;
-  categoria_id: number; // Relación con la categoría
+  categoria_id: number;
+  disponible: boolean;
 }
 
 export interface CategoriaProducto {

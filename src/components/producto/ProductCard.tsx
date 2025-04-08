@@ -1,4 +1,6 @@
-import React from "react";
+// src/components/producto/ProductCard.tsx
+"use client";
+
 import { Producto } from "@/types";
 
 interface ProductCardProps {
@@ -13,14 +15,23 @@ export default function ProductCard({
   onDelete,
 }: ProductCardProps) {
   return (
-    <div className="border p-4 rounded-lg shadow-sm">
-      <h2 className="text-lg font-semibold">{product.nombre}</h2>
-      <p className="text-sm text-gray-600">Precio: ${product.precio}</p>
-      <div className="flex justify-between mt-2">
-        <button onClick={() => onEdit(product)} className="text-blue-500">
+    <div className="border p-4 rounded mb-2 flex justify-between items-center">
+      <div>
+        <h3 className="font-bold">{product.nombre}</h3>
+        <p className="text-gray-600">${product.precio}</p>
+      </div>
+      <div>
+        <button
+          onClick={() => onEdit(product)}
+          className="mr-2 bg-yellow-500 text-white px-2 py-1 rounded"
+        >
           Editar
         </button>
-        <button onClick={() => onDelete(product.id)} className="text-red-500">
+        {/* Usa product.id_producto para eliminar */}
+        <button
+          onClick={() => onDelete(product.id_producto)}
+          className="bg-red-500 text-white px-2 py-1 rounded"
+        >
           Eliminar
         </button>
       </div>
