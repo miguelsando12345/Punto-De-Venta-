@@ -1,6 +1,7 @@
 export interface Producto {
   id_producto: number;
   nombre: string;
+  descripcion?: string; // <-- Propiedad opcional
   precio: number;
   categoria_id: number;
   disponible: boolean;
