@@ -11,13 +11,7 @@ export interface CategoriaProducto {
   nombre: string;
   productos: Producto[]; // Relación con los productos de la categoría
 }
-export interface Mesa {
-  id_mesa: number; // Add a unique identifier
-  numero: number;
-  capacidad: number;
-  estado: "Libre" | "Ocupada";
-  numComensales: number;
-}
+
 export interface DetalleComanda {
   id_detalle: number;
   id_comanda: number;
@@ -34,4 +28,13 @@ export interface Comanda {
   id_cliente: number;
   estado: "Pendiente" | "Preparando" | "Lista" | "Entregado" | "Cancelado";
   detalle_comanda: DetalleComanda[]; // Lista de productos en la comanda
+}
+
+export interface Mesa {
+  id_mesa: number; // Identificador único de la mesa
+  numero: number; // Número de la mesa
+  capacidad: number; // Capacidad máxima de la mesa
+  estado: "Libre" | "Ocupada" | "Reservada"; // Estado de la mesa
+  comandas?: Comanda[]; // Relación con las comandas (opcional)
+  cantidad_comensales?: number; // Cantidad de comensales asignados (opcional)
 }
