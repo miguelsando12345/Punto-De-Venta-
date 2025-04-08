@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       id_mesa: number;
       id_usuario: number;
       id_cliente: number;
-      estado: EstadoComanda; // Tipo para `estado`
+      estado: EstadoComanda;
       productos: Producto[];
     } = await req.json();
 
@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Crear los detalles de la comanda
-    const detallesComanda = await prisma.detalleComanda.createMany({
+    // Crear los detalles de la comanda sin asignar a una variable, para evitar el error de "unused variable"
+    await prisma.detalleComanda.createMany({
       data: productos.map((producto: Producto) => ({
         id_comanda: nuevaComanda.id_comanda,
         id_producto: producto.id_producto,
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    // Obtener los productos y sus insumos
+    // Para cada producto, obtener sus insumos y actualizar el inventario
     for (const producto of productos) {
       const productosInsumo = await prisma.productosInsumo.findMany({
         where: {
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Restar los insumos del inventario
+      // Restar los insumos del inventario según la cantidad requerida
       for (const insumo of productosInsumo) {
         const cantidadNecesaria = insumo.cantidad_requerida * producto.cantidad;
 
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
             },
           });
         } else {
-          // Si no hay suficiente inventario, puedes lanzar un error
+          // Si no hay suficiente inventario, retorna un error
           return NextResponse.json(
             {
               success: false,
