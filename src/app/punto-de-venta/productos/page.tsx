@@ -65,17 +65,23 @@ export default function ProductosPage() {
 
   const handleConfirm = async () => {
     try {
-      if (!mesaId) {
-        alert("No se ha seleccionado una mesa.");
+      const idMesaNum = Number(mesaId);
+      if (!mesaId || isNaN(idMesaNum)) {
+        alert("No se ha seleccionado una mesa válida.");
         return;
       }
 
-      // Preparar payload para el backend
+      if (currentCart.length === 0) {
+        alert("No hay productos en el carrito.");
+        return;
+      }
+
+      // Usa un usuario y cliente válidos que existan en la base de datos
       const payload = {
-        id_mesa: Number(mesaId),
-        id_usuario: 1, // Ajusta según el usuario logueado
-        id_cliente: 1, // Ajusta según el cliente si es necesario
-        estado: "Pendiente", // Estado inicial de la comanda
+        id_mesa: idMesaNum,
+        id_usuario: 3, // Asegúrate de que el usuario exista (ajustar según tu DB)
+        id_cliente: 1, // Asegúrate de que el cliente exista (ajustar según tu DB)
+        estado: "Pendiente" as const, // Especifica el tipo exacto
         detalle_comanda: currentCart.map((item) => ({
           id_producto: item.producto.id_producto,
           cantidad: item.quantity,
@@ -83,18 +89,12 @@ export default function ProductosPage() {
         })),
       };
 
-      console.log(payload); // Verifica el contenido del payload
-
-      // Realizar la petición POST para crear la comanda
       const response = await axios.post("/api/comandas", payload);
-
       if (response.data.success) {
-        // Si la comanda se guarda correctamente, vaciar el carrito y redirigir
         clearCart(mesaId);
         router.push("/punto-de-venta");
       } else {
-        console.error("Error al guardar comanda:", response.data.message);
-        alert("No se pudo guardar la comanda.");
+        alert("Error al guardar la comanda: " + response.data.message);
       }
     } catch (error) {
       console.error("Error en la confirmación:", error);

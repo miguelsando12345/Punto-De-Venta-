@@ -1,6 +1,20 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+// Definir la interfaz para Producto en la comanda
+interface DetalleComandaInput {
+  id_producto: number;
+  cantidad: number;
+  precio_unitario: number;
+}
+
+type EstadoComanda =
+  | "Pendiente"
+  | "Preparando"
+  | "Lista"
+  | "Entregado"
+  | "Cancelado";
+
 /**
  * 📌 Obtener todas las comandas (GET)
  */
@@ -37,23 +51,8 @@ export async function GET() {
   }
 }
 
-// Definir la interfaz para Producto
-interface Producto {
-  id_producto: number;
-  cantidad: number;
-  precio_unitario: number;
-}
-
-// Definir el tipo de estado según el enum de Prisma
-type EstadoComanda =
-  | "Pendiente"
-  | "Preparando"
-  | "Lista"
-  | "Entregado"
-  | "Cancelado";
-
 /**
- * 📌 Crear una nueva comanda (POST)
+ * Crear una nueva comanda (POST)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -62,26 +61,48 @@ export async function POST(req: NextRequest) {
       id_usuario,
       id_cliente,
       estado,
-      productos,
+      detalle_comanda,
     }: {
       id_mesa: number;
       id_usuario: number;
       id_cliente: number;
       estado: EstadoComanda;
-      productos: Producto[];
+      detalle_comanda: DetalleComandaInput[];
     } = await req.json();
 
-    // Validar que todos los campos necesarios estén presentes
+    // Validar que todos los campos obligatorios estén presentes
     if (
       !id_mesa ||
       !id_usuario ||
       !id_cliente ||
       !estado ||
-      !productos ||
-      productos.length === 0
+      !detalle_comanda ||
+      detalle_comanda.length === 0
     ) {
       return NextResponse.json(
         { success: false, message: "Todos los campos son obligatorios" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar que el usuario exista
+    const usuarioExistente = await prisma.usuarios.findUnique({
+      where: { id_usuario },
+    });
+    if (!usuarioExistente) {
+      return NextResponse.json(
+        { success: false, message: `Usuario con id ${id_usuario} no existe` },
+        { status: 400 }
+      );
+    }
+
+    // (Opcional) Verificar que el cliente exista
+    const clienteExistente = await prisma.clientes.findUnique({
+      where: { id_cliente },
+    });
+    if (!clienteExistente) {
+      return NextResponse.json(
+        { success: false, message: `Cliente con id ${id_cliente} no existe` },
         { status: 400 }
       );
     }
@@ -101,62 +122,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Crear la comanda
+    // Crear la comanda (encabezado)
     const nuevaComanda = await prisma.comandas.create({
       data: {
         id_mesa,
         id_usuario,
         id_cliente,
-        estado, // El estado ahora es un valor válido
+        estado,
       },
     });
 
-    // Crear los detalles de la comanda sin asignar a una variable, para evitar el error de "unused variable"
+    // Crear los detalles de la comanda
     await prisma.detalleComanda.createMany({
-      data: productos.map((producto: Producto) => ({
+      data: detalle_comanda.map((detalle) => ({
         id_comanda: nuevaComanda.id_comanda,
-        id_producto: producto.id_producto,
-        cantidad: producto.cantidad,
-        precio_unitario: producto.precio_unitario,
+        id_producto: detalle.id_producto,
+        cantidad: detalle.cantidad,
+        precio_unitario: detalle.precio_unitario,
       })),
     });
 
-    // Para cada producto, obtener sus insumos y actualizar el inventario
-    for (const producto of productos) {
-      const productosInsumo = await prisma.productosInsumo.findMany({
-        where: {
-          id_producto: producto.id_producto,
-        },
-      });
-
-      // Restar los insumos del inventario según la cantidad requerida
-      for (const insumo of productosInsumo) {
-        const cantidadNecesaria = insumo.cantidad_requerida * producto.cantidad;
-
-        const inventario = await prisma.inventario.findUnique({
-          where: { id_insumo: insumo.id_insumo },
-        });
-
-        if (inventario && inventario.unidad_disponible >= cantidadNecesaria) {
-          await prisma.inventario.update({
-            where: { id_insumo: insumo.id_insumo },
-            data: {
-              unidad_disponible:
-                inventario.unidad_disponible - cantidadNecesaria,
-            },
-          });
-        } else {
-          // Si no hay suficiente inventario, retorna un error
-          return NextResponse.json(
-            {
-              success: false,
-              message: `No hay suficiente inventario para el insumo ${inventario?.nombre}`,
-            },
-            { status: 400 }
-          );
-        }
-      }
-    }
+    // (Opcional) Actualizar inventario si es necesario...
 
     return NextResponse.json(
       { success: true, data: nuevaComanda },
