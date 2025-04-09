@@ -7,10 +7,9 @@ export interface Producto {
   disponible: boolean;
 }
 
-export interface CategoriaProducto {
-  id: number;
+interface Categoria {
+  id_categoria: number;
   nombre: string;
-  productos: Producto[]; // Relación con los productos de la categoría
 }
 
 export interface DetalleComanda {
