@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // (Opcional) Verificar que el cliente exista
+    // Verificar que el cliente exista
     const clienteExistente = await prisma.clientes.findUnique({
       where: { id_cliente },
     });
@@ -142,7 +142,21 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    // (Opcional) Actualizar inventario si es necesario...
+    // Crear la factura sin necesidad del campo total
+    await prisma.facturas.create({
+      data: {
+        id_comanda: nuevaComanda.id_comanda,
+      },
+    });
+
+    // Crear un pago (opcional, si deseas agregar esta parte, sin 'total' ni 'metodo_pago')
+    await prisma.pagos.create({
+      data: {
+        id_comanda: nuevaComanda.id_comanda,
+        id_metodo_pago: 1,  // Puedes usar el ID de un método de pago existente, como 'Efectivo'
+        fecha_hora: new Date(),  // Asignamos la fecha y hora actual
+      },
+    });
 
     return NextResponse.json(
       { success: true, data: nuevaComanda },
