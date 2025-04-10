@@ -15,12 +15,21 @@ export default function ProductosPage() {
   const searchParams = useSearchParams();
   const mesaId = searchParams.get("mesa") || "";
 
-  const { carts, addProduct, removeProduct, incrementQuantity, decrementQuantity, clearCart } = useCartStore();
+  const {
+    carts,
+    addProduct,
+    removeProduct,
+    incrementQuantity,
+    decrementQuantity,
+    clearCart,
+  } = useCartStore();
 
   const currentCart: CartItem[] = carts[mesaId] || [];
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<number | null>(null);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<
+    number | null
+  >(null);
   const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,9 +38,9 @@ export default function ProductosPage() {
     try {
       const [prodRes, catRes] = await Promise.all([
         axios.get("/api/producto"),
-        axios.get("/api/categoria-productos")
+        axios.get("/api/categoria-productos"),
       ]);
-      
+
       if (prodRes.data.success && catRes.data.success) {
         setProductos(prodRes.data.data);
         setCategorias(catRes.data.data);
@@ -60,7 +69,6 @@ export default function ProductosPage() {
         alert("No se ha seleccionado una mesa válida.");
         return;
       }
-
       if (currentCart.length === 0) {
         alert("No hay productos en el carrito.");
         return;
@@ -68,14 +76,14 @@ export default function ProductosPage() {
 
       const payload = {
         id_mesa: idMesaNum,
-        id_usuario: 3, // Asegúrate de que el usuario exista (ajustar según tu DB)
-        id_cliente: 1, // Asegúrate de que el cliente exista (ajustar según tu DB)
-        estado: "Pendiente" as const, // Especifica el tipo exacto
+        id_usuario: 3, // Asegúrate de que este usuario exista en la BD
+        id_cliente: 1, // Asegúrate de que este cliente exista en la BD
+        estado: "Pendiente" as const,
         detalle_comanda: currentCart.map((item) => ({
           id_producto: item.producto.id_producto,
           cantidad: item.quantity,
-          precio_unitario: item.producto.precio
-        }))
+          precio_unitario: item.producto.precio,
+        })),
       };
 
       const response = await axios.post("/api/comandas", payload);
@@ -94,17 +102,21 @@ export default function ProductosPage() {
   const productosFiltrados = useMemo(() => {
     return productos.filter(
       (p) =>
-        (categoriaSeleccionada === null || p.categoria_id === categoriaSeleccionada) &&
+        (categoriaSeleccionada === null ||
+          p.categoria_id === categoriaSeleccionada) &&
         p.nombre.toLowerCase().includes(busqueda.toLowerCase())
     );
   }, [productos, categoriaSeleccionada, busqueda]);
 
-  if (loading) return <div className="p-4 text-white">Cargando productos...</div>;
+  if (loading)
+    return <div className="p-4 text-white">Cargando productos...</div>;
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
     <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-6 text-center">Mesa {mesaId} · Menú</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">
+        Mesa {mesaId} · Menú
+      </h1>
 
       {/* Carrito */}
       <div className="mb-8 bg-gray-800 p-5 rounded-xl shadow-lg">
@@ -114,29 +126,40 @@ export default function ProductosPage() {
         ) : (
           <ul className="space-y-3">
             {currentCart.map((item, idx) => (
-              <li key={`${item.producto.id_producto}-${idx}`} className="bg-gray-900 p-3 rounded-lg flex justify-between items-center">
+              <li
+                key={`${item.producto.id_producto}-${idx}`}
+                className="bg-gray-900 p-3 rounded-lg flex justify-between items-center"
+              >
                 <div>
                   <p className="font-bold">{item.producto.nombre}</p>
-                  <p className="text-sm text-gray-400">${item.producto.precio} x {item.quantity}</p>
+                  <p className="text-sm text-gray-400">
+                    ${item.producto.precio} x {item.quantity}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     aria-label="Disminuir cantidad"
-                    onClick={() => decrementQuantity(mesaId, item.producto.id_producto)}
+                    onClick={() =>
+                      decrementQuantity(mesaId, item.producto.id_producto)
+                    }
                     className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded-full"
                   >
                     -
                   </button>
                   <button
                     aria-label="Aumentar cantidad"
-                    onClick={() => incrementQuantity(mesaId, item.producto.id_producto)}
+                    onClick={() =>
+                      incrementQuantity(mesaId, item.producto.id_producto)
+                    }
                     className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded-full"
                   >
                     +
                   </button>
                   <button
                     aria-label="Eliminar producto"
-                    onClick={() => removeProduct(mesaId, item.producto.id_producto)}
+                    onClick={() =>
+                      removeProduct(mesaId, item.producto.id_producto)
+                    }
                     className="px-3 py-1 bg-red-600 hover:bg-red-500 rounded-full"
                   >
                     ✕
@@ -154,7 +177,11 @@ export default function ProductosPage() {
           <button
             key={cat.id_categoria}
             aria-label={`Seleccionar categoría ${cat.nombre}`}
-            className={`px-5 py-2 rounded-full transition-all duration-200 text-sm font-medium ${cat.id_categoria === categoriaSeleccionada ? "bg-blue-600 text-white shadow-md" : "bg-gray-700 hover:bg-gray-600"}`}
+            className={`px-5 py-2 rounded-full transition-all duration-200 text-sm font-medium ${
+              cat.id_categoria === categoriaSeleccionada
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-gray-700 hover:bg-gray-600"
+            }`}
             onClick={() => setCategoriaSeleccionada(cat.id_categoria)}
           >
             {cat.nombre}
@@ -176,12 +203,19 @@ export default function ProductosPage() {
       {/* Lista de productos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
         {productosFiltrados.length === 0 ? (
-          <p className="text-gray-400 col-span-full text-center">No hay productos disponibles.</p>
+          <p className="text-gray-400 col-span-full text-center">
+            No hay productos disponibles.
+          </p>
         ) : (
           productosFiltrados.map((prod) => (
-            <div key={prod.id_producto} className="bg-gray-800 p-5 rounded-xl shadow-lg hover:shadow-xl transition">
+            <div
+              key={prod.id_producto}
+              className="bg-gray-800 p-5 rounded-xl shadow-lg hover:shadow-xl transition"
+            >
               <h2 className="text-lg font-bold">{prod.nombre}</h2>
-              <p className="text-sm text-gray-400">{prod.descripcion || "Sin descripción"}</p>
+              <p className="text-sm text-gray-400">
+                {prod.descripcion || "Sin descripción"}
+              </p>
               <p className="mt-2 font-semibold text-blue-400">${prod.precio}</p>
               <button
                 aria-label={`Añadir ${prod.nombre} al carrito`}

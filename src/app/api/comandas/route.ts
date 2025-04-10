@@ -8,13 +8,6 @@ interface DetalleComandaInput {
   precio_unitario: number;
 }
 
-type EstadoComanda =
-  | "Pendiente"
-  | "Preparando"
-  | "Lista"
-  | "Entregado"
-  | "Cancelado";
-
 /**
  * 📌 Obtener todas las comandas (GET)
  */
@@ -60,17 +53,11 @@ export async function POST(req: NextRequest) {
       id_mesa,
       id_usuario,
       id_cliente,
-      estado,
-      detalle_comanda,
-    }: {
-      id_mesa: number;
-      id_usuario: number;
-      id_cliente: number;
-      estado: EstadoComanda;
-      detalle_comanda: DetalleComandaInput[];
+      estado, // e.g. "Pendiente"
+      detalle_comanda, // array de objetos { id_producto, cantidad, precio_unitario }
     } = await req.json();
 
-    // Validar que todos los campos obligatorios estén presentes
+    // Validación de campos
     if (
       !id_mesa ||
       !id_usuario ||
@@ -85,7 +72,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verificar que el usuario exista
+    // Validar que el usuario y cliente existan
     const usuarioExistente = await prisma.usuarios.findUnique({
       where: { id_usuario },
     });
@@ -96,7 +83,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verificar que el cliente exista
     const clienteExistente = await prisma.clientes.findUnique({
       where: { id_cliente },
     });
@@ -107,22 +93,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verificar que el estado sea válido
-    const validEstados: EstadoComanda[] = [
-      "Pendiente",
-      "Preparando",
-      "Lista",
-      "Entregado",
-      "Cancelado",
-    ];
-    if (!validEstados.includes(estado)) {
-      return NextResponse.json(
-        { success: false, message: "Estado no válido" },
-        { status: 400 }
-      );
-    }
-
-    // Crear la comanda (encabezado)
+    // 1. Crear la comanda
     const nuevaComanda = await prisma.comandas.create({
       data: {
         id_mesa,
@@ -132,29 +103,30 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Crear los detalles de la comanda
+    // 2. Insertar los detalles (createMany)
     await prisma.detalleComanda.createMany({
-      data: detalle_comanda.map((detalle) => ({
+      data: detalle_comanda.map((det: DetalleComandaInput) => ({
         id_comanda: nuevaComanda.id_comanda,
-        id_producto: detalle.id_producto,
-        cantidad: detalle.cantidad,
-        precio_unitario: detalle.precio_unitario,
+        id_producto: det.id_producto,
+        cantidad: det.cantidad,
+        precio_unitario: det.precio_unitario,
       })),
     });
 
-    // Crear la factura sin necesidad del campo total
+    // 3. Crear la factura
     await prisma.facturas.create({
       data: {
         id_comanda: nuevaComanda.id_comanda,
       },
     });
 
-    // Crear un pago (opcional, si deseas agregar esta parte, sin 'total' ni 'metodo_pago')
+    // 4. Crear el pago (usando id_metodo_pago = 1)
+    //    Asegúrate de que haya un registro con id_metodo_pago=1 ("Efectivo") en BD
     await prisma.pagos.create({
       data: {
         id_comanda: nuevaComanda.id_comanda,
-        id_metodo_pago: 1,  // Puedes usar el ID de un método de pago existente, como 'Efectivo'
-        fecha_hora: new Date(),  // Asignamos la fecha y hora actual
+        id_metodo_pago: 1,
+        fecha_hora: new Date(),
       },
     });
 
